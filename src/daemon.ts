@@ -8,13 +8,12 @@ import { SqliteRepositories } from "coco-cashu-sqlite3";
 import { generateMnemonic, mnemonicToSeedSync } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { Database } from "sqlite3";
-import { commands } from "./commands";
 
 const SOCKET_PATH = process.env.COCOD_SOCKET || "/tmp/cocod.sock";
 const PID_FILE = process.env.COCOD_PID || "/tmp/cocod.pid";
 
 // Route handler type
-type RouteHandler = (req: Request, wallet: WalletApi, mintUrl: string) => Promise<Response>;
+ type RouteHandler = (req: Request, wallet: WalletApi, mintUrl: string) => Promise<Response>;
 
 // Handler registry - maps paths to their handlers
 const routeHandlers: Record<string, { GET?: RouteHandler; POST?: RouteHandler }> = {
@@ -44,14 +43,25 @@ const routeHandlers: Record<string, { GET?: RouteHandler; POST?: RouteHandler }>
       }
     },
   },
-  "/help": {
-    GET: async () => {
-      const commandList = commands
-        .map((c) => `  ${c.name} - ${c.description}`)
-        .join("\n");
-      return Response.json({
-        output: `Available commands:\n${commandList}`,
-      });
+  // Mint subcommands
+  "/mint/add": {
+    POST: async (req, wallet) => {
+      const body = (await req.json()) as { url: string };
+      await wallet.addMint(body.url);
+      return Response.json({ output: `Added mint: ${body.url}` });
+    },
+  },
+  "/mint/list": {
+    GET: async (_req, wallet) => {
+      const mints = await wallet.getMints();
+      return Response.json({ output: mints.join("\n") });
+    },
+  },
+  "/mint/bolt11": {
+    POST: async (req, wallet) => {
+      const body = (await req.json()) as { amount: number };
+      const invoice = await wallet.createBolt11Invoice(body.amount);
+      return Response.json({ output: invoice });
     },
   },
 };
