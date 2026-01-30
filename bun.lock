@@ -8,6 +8,7 @@
         "@scure/bip39": "^2.0.1",
         "coco-cashu-core": "^1.1.2-rc.43",
         "coco-cashu-sqlite3": "^1.1.2-rc.43",
+        "commander": "^14.0.2",
         "sqlite3": "^5.1.7",
       },
       "devDependencies": {
@@ -82,6 +83,8 @@
     "coco-cashu-sqlite3": ["coco-cashu-sqlite3@1.1.2-rc.43", "", { "peerDependencies": { "coco-cashu-core": "1.1.2-rc.43", "sqlite3": "^5", "typescript": "^5" } }, "sha512-vLOJaHxcFMxpmIXdphMChxzSgPHBOGcjs+1rPLUKfLw9ssLOfCcRMLqNQh94c3YAhHagWwzr5knsqQBPHRi2pQ=="],
 
     "color-support": ["color-support@1.1.3", "", { "bin": { "color-support": "bin.js" } }, "sha512-qiBjkpbMLO/HL68y+lh4q0/O1MZFj2RX6X/KmMa3+gJD3z+WwI1ZzDHysvqHGS3mP6mznPckpXmw1nI9cJjyRg=="],
+
+    "commander": ["commander@14.0.2", "", {}, "sha512-TywoWNNRbhoD0BXs1P3ZEScW8W5iKrnbithIl0YH+uCmBd0QpPOA8yc82DS3BIE5Ma6FnBVUsJ7wVUDz4dvOWQ=="],
 
     "concat-map": ["concat-map@0.0.1", "", {}, "sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg=="],
 

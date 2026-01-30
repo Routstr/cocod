@@ -21,6 +21,7 @@
     "@scure/bip39": "^2.0.1",
     "coco-cashu-core": "^1.1.2-rc.43",
     "coco-cashu-sqlite3": "^1.1.2-rc.43",
+    "commander": "^14.0.2",
     "sqlite3": "^5.1.7"
   }
 }
