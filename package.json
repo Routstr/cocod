@@ -1,0 +1,20 @@
+{
+  "name": "cocod",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "cocod": "./index.ts"
+  },
+  "scripts": {
+    "start": "bun index.ts",
+    "daemon": "bun index.ts daemon",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
