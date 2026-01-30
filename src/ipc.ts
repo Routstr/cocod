@@ -5,12 +5,25 @@ interface CommandResponse {
   error?: string;
 }
 
+function getEndpoint(command: string): { path: string; method: string } {
+  switch (command) {
+    case "balance":
+      return { path: "/balance", method: "GET" };
+    case "help":
+      return { path: "/help", method: "GET" };
+    case "ping":
+      return { path: "/ping", method: "GET" };
+    default:
+      return { path: `/${command}`, method: "GET" };
+  }
+}
+
 export async function runCommand(command: string, args: string[]) {
-  const response = await fetch("http://localhost/command", {
+  const { path, method } = getEndpoint(command);
+
+  const response = await fetch(`http://localhost${path}`, {
     unix: SOCKET_PATH,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ command, args }),
+    method,
   });
 
   if (!response.ok) {

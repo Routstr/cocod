@@ -31,38 +31,42 @@ export async function startDaemon() {
 
   const server = Bun.serve({
     unix: SOCKET_PATH,
-    async fetch(req) {
-      try {
-        const body = (await req.json()) as CommandRequest;
-        const { command, args = [] } = body;
-        console.log(body);
-        if (command === "balance") {
+    routes: {
+      "/balance": {
+        GET: async () => {
           console.log("Getting balance...");
           const balance = await coco.wallet.getBalances();
           const res = { output: balance[MINT_URL] || 0 };
           console.log("res", res);
           return Response.json(res);
-        }
-
-        const handler = handlers[command];
-
-        if (!handler) {
-          return Response.json(
-            { error: `Unknown command: ${command}` },
-            { status: 404 },
-          );
-        }
-
-        const result = await handler(args);
-        return Response.json(result);
-      } catch (error) {
-        return Response.json(
-          {
-            error: error instanceof Error ? error.message : "Unknown error",
-          },
-          { status: 500 },
-        );
-      }
+        },
+      },
+      "/help": {
+        GET: async () => {
+          const handler = handlers.help;
+          if (!handler) {
+            return Response.json({ error: "Help handler not found" }, { status: 500 });
+          }
+          const result = await handler([]);
+          return Response.json(result);
+        },
+      },
+      "/ping": {
+        GET: async () => {
+          const handler = handlers.ping;
+          if (!handler) {
+            return Response.json({ error: "Ping handler not found" }, { status: 500 });
+          }
+          const result = await handler([]);
+          return Response.json(result);
+        },
+      },
+    },
+    async fetch(req) {
+      return Response.json(
+        { error: `Unknown endpoint: ${req.url}` },
+        { status: 404 },
+      );
     },
   });
 
