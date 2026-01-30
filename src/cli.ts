@@ -2,11 +2,55 @@ import { runCommand, commands, type CommandResponse } from "./ipc";
 import { startDaemon } from "./daemon";
 import { program } from "commander";
 
+const SOCKET_PATH = process.env.COCOD_SOCKET || "/tmp/cocod.sock";
+
+async function isDaemonRunning(): Promise<boolean> {
+  try {
+    const response = await fetch(`http://localhost/ping`, {
+      unix: SOCKET_PATH,
+    } as RequestInit);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function startDaemonProcess(): Promise<void> {
+  // Start daemon in background using Bun.spawn
+  const proc = Bun.spawn({
+    cmd: ["bun", "run", `${import.meta.dir}/index.ts`, "daemon"],
+    stdout: "ignore",
+    stderr: "ignore",
+    stdin: "ignore",
+  });
+  proc.unref();
+
+  // Wait for daemon to be ready (max 5 seconds)
+  for (let i = 0; i < 50; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    if (await isDaemonRunning()) {
+      return;
+    }
+  }
+
+  throw new Error("Daemon failed to start within 5 seconds");
+}
+
+async function ensureDaemonRunning(): Promise<void> {
+  if (await isDaemonRunning()) {
+    return;
+  }
+
+  console.log("Starting daemon...");
+  await startDaemonProcess();
+}
+
 async function handleCommand(
   commandName: string,
   args: string[] = []
 ): Promise<CommandResponse> {
   try {
+    await ensureDaemonRunning();
     const result = await runCommand(commandName, args);
 
     if (result.error) {
@@ -25,7 +69,7 @@ async function handleCommand(
       message?.includes("fetch failed") ||
       message?.includes("Connection refused")
     ) {
-      console.error("Daemon is not running. Start it with: cocod daemon");
+      console.error("Daemon is not running and failed to auto-start");
       process.exit(1);
     }
     throw error;

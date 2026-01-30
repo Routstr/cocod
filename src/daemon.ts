@@ -11,6 +11,7 @@ import { Database } from "sqlite3";
 import { commands } from "./commands";
 
 const SOCKET_PATH = process.env.COCOD_SOCKET || "/tmp/cocod.sock";
+const PID_FILE = process.env.COCOD_PID || "/tmp/cocod.pid";
 
 // Route handler type
 type RouteHandler = (req: Request, wallet: WalletApi, mintUrl: string) => Promise<Response>;
@@ -80,11 +81,38 @@ function buildRoutes(
 }
 
 export async function startDaemon() {
+  // Check if daemon is already running by trying to connect to the socket
+  try {
+    const testConn = await Bun.connect({
+      unix: SOCKET_PATH,
+      socket: {
+        data() {},
+        open() {},
+        close() {},
+        drain() {},
+      },
+    });
+    testConn.end();
+    console.error(`Error: Daemon is already running on ${SOCKET_PATH}`);
+    process.exit(1);
+  } catch {
+    // Not running, safe to proceed
+  }
+
+  // Clean up any stale socket and PID files
   try {
     await Bun.file(SOCKET_PATH).delete();
   } catch {
     // File might not exist
   }
+  try {
+    await Bun.file(PID_FILE).delete();
+  } catch {
+    // File might not exist
+  }
+
+  // Write PID file
+  await Bun.write(PID_FILE, process.pid.toString());
 
   const MINT_URL = "https://mint.minibits.cash/Bitcoin";
 
@@ -104,7 +132,24 @@ export async function startDaemon() {
 
   const server = Bun.serve({
     unix: SOCKET_PATH,
-    routes,
+    routes: {
+      ...routes,
+      "/stop": {
+        POST: async () => {
+          console.log("\nShutting down daemon...");
+          setTimeout(async () => {
+            server.stop();
+            try {
+              await Bun.file(PID_FILE).delete();
+            } catch {
+              // File might not exist
+            }
+            process.exit(0);
+          }, 100);
+          return Response.json({ output: "Daemon stopping" });
+        },
+      },
+    },
     async fetch(req) {
       return Response.json(
         { error: `Unknown endpoint: ${req.url}` },
@@ -115,9 +160,17 @@ export async function startDaemon() {
 
   console.log(`Daemon listening on ${SOCKET_PATH}`);
 
-  process.on("SIGINT", () => {
+  const cleanup = async () => {
     console.log("\nShutting down daemon...");
     server.stop();
+    try {
+      await Bun.file(PID_FILE).delete();
+    } catch {
+      // File might not exist
+    }
     process.exit(0);
-  });
+  };
+
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
 }

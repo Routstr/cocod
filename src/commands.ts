@@ -9,6 +9,12 @@ export interface CommandDefinition {
 
 export const commands: CommandDefinition[] = [
   {
+    name: "stop",
+    description: "Stop the background daemon",
+    method: "POST",
+    path: "/stop",
+  },
+  {
     name: "ping",
     description: "Test connection to the daemon",
     method: "GET",
