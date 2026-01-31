@@ -17,10 +17,9 @@ import type {
   RouteHandler,
 } from "./utils/state.js";
 
-export function createRouteHandlers(stateManager: DaemonStateManager): Record<
-  string,
-  { GET?: RouteHandler; POST?: RouteHandler }
-> {
+export function createRouteHandlers(
+  stateManager: DaemonStateManager,
+): Record<string, { GET?: RouteHandler; POST?: RouteHandler }> {
   return {
     "/ping": {
       GET: async () => Response.json({ output: "pong" }),
@@ -99,7 +98,8 @@ export function createRouteHandlers(stateManager: DaemonStateManager): Record<
 
           return Response.json({ output });
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           return Response.json(
             { error: `Init failed: ${message}` },
             { status: 500 },
@@ -108,47 +108,50 @@ export function createRouteHandlers(stateManager: DaemonStateManager): Record<
       }),
     },
     "/unlock": {
-      POST: stateManager.requireLocked(async (req: Request, state: LockedState) => {
-        try {
-          const body = (await req.json()) as { passphrase: string };
+      POST: stateManager.requireLocked(
+        async (req: Request, state: LockedState) => {
+          try {
+            const body = (await req.json()) as { passphrase: string };
 
-          if (!body.passphrase) {
+            if (!body.passphrase) {
+              return Response.json(
+                { error: "Passphrase required" },
+                { status: 400 },
+              );
+            }
+
+            const salt = await Bun.file(SALT_FILE).text();
+            const { decryptMnemonic } = await import("./utils/crypto.js");
+            const mnemonic = await decryptMnemonic(
+              state.encryptedMnemonic,
+              body.passphrase,
+              salt,
+            );
+
+            const config: WalletConfig = {
+              version: 1,
+              mnemonic,
+              encrypted: false,
+              mintUrl: state.mintUrl,
+              createdAt: new Date().toISOString(),
+            };
+
+            const manager = await initializeWallet(config);
+            const seed = mnemonicToSeedSync(mnemonic);
+
+            stateManager.setUnlocked(manager, state.mintUrl, seed);
+
+            return Response.json({ output: "Unlocked" });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
             return Response.json(
-              { error: "Passphrase required" },
-              { status: 400 },
+              { error: `Unlock failed: ${message}` },
+              { status: 401 },
             );
           }
-
-          const salt = await Bun.file(SALT_FILE).text();
-          const { decryptMnemonic } = await import("./utils/crypto.js");
-          const mnemonic = await decryptMnemonic(
-            state.encryptedMnemonic,
-            body.passphrase,
-            salt,
-          );
-
-          const config: WalletConfig = {
-            version: 1,
-            mnemonic,
-            encrypted: false,
-            mintUrl: state.mintUrl,
-            createdAt: new Date().toISOString(),
-          };
-
-          const manager = await initializeWallet(config);
-          const seed = mnemonicToSeedSync(mnemonic);
-
-          stateManager.setUnlocked(manager, state.mintUrl, seed);
-
-          return Response.json({ output: "Unlocked" });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          return Response.json(
-            { error: `Unlock failed: ${message}` },
-            { status: 401 },
-          );
-        }
-      }),
+        },
+      ),
     },
     "/npc/address": {
       GET: stateManager.requireUnlocked(async (_req, state: UnlockedState) => {
@@ -184,20 +187,31 @@ export function createRouteHandlers(stateManager: DaemonStateManager): Record<
         }
       }),
     },
-    "/mint/add": {
+    "/mints/add": {
       POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
         const body = (await req.json()) as { url: string };
         await state.manager.mint.addMint(body.url, { trusted: true });
         return Response.json({ output: `Added mint: ${body.url}` });
       }),
     },
-    "/mint/list": {
+    "/mints/list": {
       GET: stateManager.requireUnlocked(async (_req, state: UnlockedState) => {
-        const mints = await state.manager.mint.getAllMints();
-        return Response.json({ output: mints.join("\n") });
+        const mints = await state.manager.mint.getAllTrustedMints();
+        console.log(mints);
+        return Response.json({
+          output: mints.map((m) => m.mintUrl).join("\n"),
+        });
       }),
     },
-    "/mint/bolt11": {
+    "/mints/info": {
+      POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
+        const body = (await req.json()) as { url: string };
+        const info = await state.manager.mint.getMintInfo(body.url);
+        return Response.json({ output: info });
+      }),
+    },
+
+    "/mints/bolt11": {
       POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
         const body = (await req.json()) as { amount: number };
         const quote = await state.manager.quotes.createMintQuote(
@@ -219,18 +233,21 @@ export function createRouteHandlers(stateManager: DaemonStateManager): Record<
         if (isNaN(offset) || offset < 0) {
           return Response.json(
             { error: "Invalid offset parameter" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         if (isNaN(limit) || limit < 1 || limit > 100) {
           return Response.json(
             { error: "Invalid limit parameter (must be 1-100)" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
-        const entries = await state.manager.history.getPaginatedHistory(offset, limit);
+        const entries = await state.manager.history.getPaginatedHistory(
+          offset,
+          limit,
+        );
         return Response.json({ output: entries });
       }),
     },
@@ -241,15 +258,18 @@ export function createRouteHandlers(stateManager: DaemonStateManager): Record<
         const stream = new ReadableStream({
           start(controller) {
             // Subscribe to history updates
-            const unsubscribe = state.manager.on("history:updated", (payload) => {
-              const eventData = JSON.stringify({
-                type: "history:updated",
-                timestamp: new Date().toISOString(),
-                data: payload,
-              });
-              const sseData = `data: ${eventData}\n\n`;
-              controller.enqueue(new TextEncoder().encode(sseData));
-            });
+            const unsubscribe = state.manager.on(
+              "history:updated",
+              (payload) => {
+                const eventData = JSON.stringify({
+                  type: "history:updated",
+                  timestamp: new Date().toISOString(),
+                  data: payload,
+                });
+                const sseData = `data: ${eventData}\n\n`;
+                controller.enqueue(new TextEncoder().encode(sseData));
+              },
+            );
 
             // Send periodic keep-alive pings to prevent connection timeout
             const keepAliveInterval = setInterval(() => {
@@ -269,7 +289,7 @@ export function createRouteHandlers(stateManager: DaemonStateManager): Record<
           headers: {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-store",
-            "Connection": "keep-alive",
+            Connection: "keep-alive",
           },
         });
       }),
@@ -282,7 +302,10 @@ export function buildRoutes(
   getState: () => import("./utils/state.js").DaemonState,
 ): Record<
   string,
-  { GET?: (req: Request) => Promise<Response>; POST?: (req: Request) => Promise<Response> }
+  {
+    GET?: (req: Request) => Promise<Response>;
+    POST?: (req: Request) => Promise<Response>;
+  }
 > {
   const routes: Record<
     string,
@@ -297,8 +320,7 @@ export function buildRoutes(
 
     if (handlers.GET) {
       const handler = handlers.GET;
-      routes[path]!.GET = async (req: Request) =>
-        handler(req, getState());
+      routes[path]!.GET = async (req: Request) => handler(req, getState());
     }
 
     if (handlers.POST) {

@@ -4,7 +4,7 @@ const CONFIG_DIR = `${process.env.HOME || process.env.USERPROFILE}/.cocod`;
 const SOCKET_PATH = process.env.COCOD_SOCKET || `${CONFIG_DIR}/cocod.sock`;
 
 export interface CommandResponse {
-  output?: string;
+  output?: unknown;
   error?: string;
 }
 
@@ -84,7 +84,16 @@ export async function handleDaemonCommand(
     }
 
     if (result.output !== undefined) {
-      console.log(result.output);
+      if (typeof result.output === "string") {
+        console.log(result.output);
+      } else {
+        try {
+          const formatted = JSON.stringify(result.output, null, 2);
+          console.log(formatted ?? String(result.output));
+        } catch {
+          console.log(String(result.output));
+        }
+      }
     }
 
     return result;

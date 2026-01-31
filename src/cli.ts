@@ -76,33 +76,43 @@ program
     await handleDaemonCommand("/stop", { method: "POST" });
   });
 
-// Mint - nested subcommands
-const mintCmd = program
-  .command("mint")
-  .description("Mint operations");
+// Mints - nested subcommands
+const mintsCmd = program
+  .command("mints")
+  .description("Mints operations");
 
-mintCmd
+mintsCmd
   .command("add <url>")
   .description("Add a mint URL")
   .action(async (url: string) => {
-    await handleDaemonCommand("/mint/add", {
+    await handleDaemonCommand("/mints/add", {
       method: "POST",
       body: { url },
     });
   });
 
-mintCmd
+mintsCmd
   .command("list")
   .description("List configured mints")
   .action(async () => {
-    await handleDaemonCommand("/mint/list");
+    await handleDaemonCommand("/mints/list");
   });
 
-mintCmd
+mintsCmd
+  .command("info <url>")
+  .description("Get mint info")
+  .action(async (url: string) => {
+    await handleDaemonCommand("/mints/info", {
+      method: "POST",
+      body: { url },
+    });
+  });
+
+mintsCmd
   .command("bolt11 <amount>")
   .description("Create Lightning invoice to mint tokens")
   .action(async (amount: string) => {
-    await handleDaemonCommand("/mint/bolt11", {
+    await handleDaemonCommand("/mints/bolt11", {
       method: "POST",
       body: { amount: parseInt(amount) },
     });
