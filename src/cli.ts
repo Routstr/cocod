@@ -107,6 +107,18 @@ mintCmd
     });
   });
 
+// NPC - nested subcommands
+const npcCmd = program
+  .command("npc")
+  .description("NPC operations");
+
+npcCmd
+  .command("address")
+  .description("Get NPC user address")
+  .action(async () => {
+    await handleDaemonCommand("/npc/address");
+  });
+
 // Daemon command - special case, doesn't go through IPC
 program
   .command("daemon")

@@ -7,8 +7,10 @@
       "dependencies": {
         "@scure/bip39": "^2.0.1",
         "coco-cashu-core": "^1.1.2-rc.43",
+        "coco-cashu-plugin-npc": "^2.2.4",
         "coco-cashu-sqlite3": "^1.1.2-rc.43",
         "commander": "^14.0.2",
+        "nostr-tools": "^2.22.1",
         "sqlite3": "^5.1.7",
       },
       "devDependencies": {
@@ -23,6 +25,8 @@
     "@cashu/cashu-ts": ["@cashu/cashu-ts@3.3.0", "", { "dependencies": { "@noble/curves": "^2.0.1", "@noble/hashes": "^2.0.1", "@scure/base": "^2.0.0", "@scure/bip32": "^2.0.1" } }, "sha512-hHUOhjPLK77axDdj/4qO5mJ14rkh+rZGe1Gz2RbkW2j+SIglNbc2NsKSvjvoQcshupm02FudKi9Y3s3M8ZSYzg=="],
 
     "@gar/promisify": ["@gar/promisify@1.1.3", "", {}, "sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw=="],
+
+    "@noble/ciphers": ["@noble/ciphers@2.1.1", "", {}, "sha512-bysYuiVfhxNJuldNXlFEitTVdNnYUc+XNJZd7Qm2a5j1vZHgY+fazadNFWFaMK/2vye0JVlxV3gHmC0WDfAOQw=="],
 
     "@noble/curves": ["@noble/curves@2.0.1", "", { "dependencies": { "@noble/hashes": "2.0.1" } }, "sha512-vs1Az2OOTBiP4q0pwjW5aF0xp9n4MxVrmkFBxc6EKZc6ddYx5gaZiAsZoq0uRRXWbi3AT/sBqn05eRPtn1JCPw=="],
 
@@ -79,6 +83,8 @@
     "clean-stack": ["clean-stack@2.2.0", "", {}, "sha512-4diC9HaTE+KRAMWhDhrGOECgWZxoevMc5TlkObMqNSsVU62PYzXZ/SMTjzyGAFF1YusgxGcSWTEXBhp0CPwQ1A=="],
 
     "coco-cashu-core": ["coco-cashu-core@1.1.2-rc.43", "", { "dependencies": { "@cashu/cashu-ts": "3.3.0", "@noble/curves": "^2.0.1", "@noble/hashes": "^2.0.1", "@scure/bip32": "^2.0.1" }, "peerDependencies": { "typescript": "^5" } }, "sha512-n7SFogAzhgUJ1NK5GXy20WkMpnq7+d7Oe8lb/H1IPBI5YbXAKho/IpHLffFTxs7qB7Ru2Rbjhj8tdq0lVByj4w=="],
+
+    "coco-cashu-plugin-npc": ["coco-cashu-plugin-npc@2.2.4", "", { "dependencies": { "npubcash-sdk": "^0.3.2" }, "peerDependencies": { "coco-cashu-core": "^1.1.2-rc.38", "typescript": "^5.0.0" } }, "sha512-Es6EZI8qo76fEXJtV1wLjQPAf0CSN3ZtVsmfRekkw5B8cNJefAHkBLXNmUQg7nJb4IGG2qDFsM9k399fxFJc0w=="],
 
     "coco-cashu-sqlite3": ["coco-cashu-sqlite3@1.1.2-rc.43", "", { "peerDependencies": { "coco-cashu-core": "1.1.2-rc.43", "sqlite3": "^5", "typescript": "^5" } }, "sha512-vLOJaHxcFMxpmIXdphMChxzSgPHBOGcjs+1rPLUKfLw9ssLOfCcRMLqNQh94c3YAhHagWwzr5knsqQBPHRi2pQ=="],
 
@@ -204,7 +210,15 @@
 
     "nopt": ["nopt@5.0.0", "", { "dependencies": { "abbrev": "1" }, "bin": { "nopt": "bin/nopt.js" } }, "sha512-Tbj67rffqceeLpcRXrT7vKAN8CwfPeIBgM7E6iBkmKLV7bEMwpGgYLGv0jACUsECaa/vuxP0IjEont6umdMgtQ=="],
 
+    "nostr-tools": ["nostr-tools@2.22.1", "", { "dependencies": { "@noble/ciphers": "2.1.1", "@noble/curves": "2.0.1", "@noble/hashes": "2.0.1", "@scure/base": "2.0.0", "@scure/bip32": "2.0.1", "@scure/bip39": "2.0.1", "nostr-wasm": "0.1.0" }, "peerDependencies": { "typescript": ">=5.0.0" }, "optionalPeers": ["typescript"] }, "sha512-LJKy4lU6thO6Z6CVWkfqHGDt9m/M5IfRlmEI2hBXYLw4xa3jpfIHKJxXQhx/8C3TcN0YPkMRJlhGmu/g0VH80g=="],
+
+    "nostr-wasm": ["nostr-wasm@0.1.0", "", {}, "sha512-78BTryCLcLYv96ONU8Ws3Q1JzjlAt+43pWQhIl86xZmWeegYCNLPml7yQ+gG3vR6V5h4XGj+TxO+SS5dsThQIA=="],
+
     "npmlog": ["npmlog@6.0.2", "", { "dependencies": { "are-we-there-yet": "^3.0.0", "console-control-strings": "^1.1.0", "gauge": "^4.0.3", "set-blocking": "^2.0.0" } }, "sha512-/vBvz5Jfr9dT/aFWd0FIRf+T/Q2WBsLENygUaFUqstqsycmZAP/t5BvFJTK0viFmSUxiUKTUplWy5vt+rvKIxg=="],
+
+    "npubcash-sdk": ["npubcash-sdk@0.3.2", "", { "dependencies": { "@cashu/cashu-ts": "^3.2.2", "nostr-tools": "^2.19.4", "npubcash-types": "^0.1.1" } }, "sha512-mJwvWW6rAq04b/AHbd76T4gTeUqP2uprc01Y0ToU9ZK5co3n1PmBKWLBLbPN+VgpHhE0LubzjLq/qm70YWUugA=="],
+
+    "npubcash-types": ["npubcash-types@0.1.1", "", {}, "sha512-/HGfes2cvQpkrWOuUrdemJJhJUQu+xiXl4x+AxQtKUMGCB8uEhfrXJfAQ0n+DgtkIX1YVLOh0a/e6E5LX+fUew=="],
 
     "once": ["once@1.4.0", "", { "dependencies": { "wrappy": "1" } }, "sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w=="],
 

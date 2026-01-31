@@ -83,7 +83,7 @@ export async function handleDaemonCommand(
       process.exit(1);
     }
 
-    if (result.output) {
+    if (result.output !== undefined) {
       console.log(result.output);
     }
 

@@ -2,9 +2,7 @@ import {
   initializeCoco,
   getDecodedToken,
   ConsoleLogger,
-  type WalletApi,
-  type MintApi,
-  type QuotesApi,
+  type Manager,
 } from "coco-cashu-core";
 import { SqliteRepositories } from "coco-cashu-sqlite3";
 import {
@@ -14,19 +12,17 @@ import {
 } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { Database } from "sqlite3";
+import { NPCPlugin } from "coco-cashu-plugin-npc";
+import { privateKeyFromSeedWords } from "nostr-tools/nip06";
+import { finalizeEvent, nip19, type EventTemplate } from "nostr-tools";
+import { homedir } from "node:os";
 
-const CONFIG_DIR = `${process.env.HOME || process.env.USERPROFILE}/.cocod`;
+const CONFIG_DIR = `${homedir()}/.cocod`;
 const SOCKET_PATH = process.env.COCOD_SOCKET || `${CONFIG_DIR}/cocod.sock`;
 const PID_FILE = process.env.COCOD_PID || `${CONFIG_DIR}/cocod.pid`;
 const CONFIG_FILE = `${CONFIG_DIR}/config.json`;
 const SALT_FILE = `${CONFIG_DIR}/salt`;
-
-// Manager-like interface for the APIs we need
-interface ManagerApis {
-  wallet: WalletApi;
-  mint: MintApi;
-  quotes: QuotesApi;
-}
+const DB_FILE = `${CONFIG_DIR}/coco.db`;
 
 // State machine types
 interface UninitializedState {
@@ -41,7 +37,7 @@ interface LockedState {
 
 interface UnlockedState {
   status: "UNLOCKED";
-  apis: ManagerApis;
+  manager: Manager;
   mintUrl: string;
   seed: Uint8Array;
 }
@@ -240,7 +236,7 @@ async function decryptMnemonic(
 async function initializeWallet(
   config: WalletConfig,
   passphrase?: string,
-): Promise<ManagerApis> {
+): Promise<Manager> {
   let mnemonic: string;
 
   if (config.encrypted) {
@@ -255,20 +251,25 @@ async function initializeWallet(
 
   const seed = mnemonicToSeedSync(mnemonic);
 
-  const repo = new SqliteRepositories({ database: new Database("./coco.db") });
+  const repo = new SqliteRepositories({ database: new Database(DB_FILE) });
+  const logger = new ConsoleLogger("Coco", { level: "info" });
+  const sk = privateKeyFromSeedWords(mnemonic);
+  const signer = async (t: EventTemplate) => finalizeEvent(t, sk);
+  const npcPlugin = new NPCPlugin("https://npuby.cash", signer, {
+    useWebsocket: true,
+    logger,
+  });
   const coco = await initializeCoco({
     repo,
     seedGetter: async () => seed,
-    logger: new ConsoleLogger("Coco", { level: "info" }),
+    logger,
   });
+
+  coco.use(npcPlugin);
 
   await coco.mint.addMint(config.mintUrl, { trusted: true });
 
-  return {
-    wallet: coco.wallet,
-    mint: coco.mint,
-    quotes: coco.quotes,
-  };
+  return coco;
 }
 
 // Handler registry - maps paths to their handlers
@@ -351,9 +352,9 @@ const routeHandlers: Record<
           };
 
           // Initialize wallet immediately
-          const apis = await initializeWallet(config);
+          const manager = await initializeWallet(config);
           const seed = mnemonicToSeedSync(mnemonic);
-          daemonState = { status: "UNLOCKED", apis, mintUrl, seed };
+          daemonState = { status: "UNLOCKED", manager, mintUrl, seed };
         }
 
         // Save config
@@ -400,12 +401,12 @@ const routeHandlers: Record<
           createdAt: new Date().toISOString(),
         };
 
-        const apis = await initializeWallet(config);
+        const manager = await initializeWallet(config);
         const seed = mnemonicToSeedSync(mnemonic);
 
         daemonState = {
           status: "UNLOCKED",
-          apis,
+          manager,
           mintUrl: state.mintUrl,
           seed,
         };
@@ -420,9 +421,20 @@ const routeHandlers: Record<
       }
     }),
   },
+  "/npc/address": {
+    GET: requireUnlocked(async (_req, state) => {
+      const info = await state.manager.ext.npc.getInfo();
+      if (info.name) {
+        return Response.json({ output: `${info.name}@npuby.cash` });
+      }
+      const npub = nip19.npubEncode(info.pubkey);
+      return Response.json({ output: `${npub}@npuby.cash` });
+    }),
+  },
+
   "/balance": {
     GET: requireUnlocked(async (_req, state) => {
-      const balance = await state.apis.wallet.getBalances();
+      const balance = await state.manager.wallet.getBalances();
       return Response.json({ output: balance });
     }),
   },
@@ -432,7 +444,7 @@ const routeHandlers: Record<
         const body = (await req.json()) as { token: string };
         const token = body.token;
         const decoded = getDecodedToken(token);
-        await state.apis.wallet.receive(token);
+        await state.manager.wallet.receive(token);
         const total = decoded.proofs.reduce(
           (a: number, c: { amount: number }) => a + c.amount,
           0,
@@ -447,20 +459,20 @@ const routeHandlers: Record<
   "/mint/add": {
     POST: requireUnlocked(async (req, state) => {
       const body = (await req.json()) as { url: string };
-      await state.apis.mint.addMint(body.url, { trusted: true });
+      await state.manager.mint.addMint(body.url, { trusted: true });
       return Response.json({ output: `Added mint: ${body.url}` });
     }),
   },
   "/mint/list": {
     GET: requireUnlocked(async (_req, state) => {
-      const mints = await state.apis.mint.getAllMints();
+      const mints = await state.manager.mint.getAllMints();
       return Response.json({ output: mints.join("\n") });
     }),
   },
   "/mint/bolt11": {
     POST: requireUnlocked(async (req, state) => {
       const body = (await req.json()) as { amount: number };
-      const quote = await state.apis.quotes.createMintQuote(
+      const quote = await state.manager.quotes.createMintQuote(
         state.mintUrl,
         body.amount,
       );
@@ -561,11 +573,11 @@ export async function startDaemon() {
         );
       } else {
         // Auto-initialize with plaintext mnemonic
-        const apis = await initializeWallet(config);
+        const manager = await initializeWallet(config);
         const seed = mnemonicToSeedSync(config.mnemonic);
         daemonState = {
           status: "UNLOCKED",
-          apis,
+          manager,
           mintUrl: config.mintUrl,
           seed,
         };
