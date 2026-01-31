@@ -10,7 +10,7 @@ export interface CommandResponse {
 
 async function callDaemon(
   path: string,
-  options: { method?: "GET" | "POST"; body?: object } = {}
+  options: { method?: "GET" | "POST"; body?: object } = {},
 ): Promise<CommandResponse> {
   const { method = "GET", body } = options;
 
@@ -72,7 +72,7 @@ export async function ensureDaemonRunning(): Promise<void> {
 
 export async function handleDaemonCommand(
   path: string,
-  options: { method?: "GET" | "POST"; body?: object } = {}
+  options: { method?: "GET" | "POST"; body?: object } = {},
 ): Promise<CommandResponse> {
   try {
     await ensureDaemonRunning();
@@ -99,10 +99,7 @@ export async function handleDaemonCommand(
     return result;
   } catch (error) {
     const message = (error as Error).message;
-    if (
-      message?.includes("fetch failed") ||
-      message?.includes("Connection refused")
-    ) {
+    if (message?.includes("fetch failed") || message?.includes("Connection refused")) {
       console.error("Daemon is not running and failed to auto-start");
       process.exit(1);
     }
@@ -112,7 +109,7 @@ export async function handleDaemonCommand(
 
 export async function callDaemonStream(
   path: string,
-  onData: (data: unknown) => void
+  onData: (data: unknown) => void,
 ): Promise<void> {
   await ensureDaemonRunning();
 

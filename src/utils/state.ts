@@ -22,11 +22,7 @@ export interface ErrorState {
   message: string;
 }
 
-export type DaemonState =
-  | UninitializedState
-  | LockedState
-  | UnlockedState
-  | ErrorState;
+export type DaemonState = UninitializedState | LockedState | UnlockedState | ErrorState;
 
 export type RouteHandler = (req: Request, state: DaemonState) => Promise<Response>;
 
@@ -77,8 +73,7 @@ export class DaemonStateManager {
         if (state.status === "LOCKED") {
           return Response.json(
             {
-              error:
-                "Wallet is locked. Run 'cocod unlock <passphrase>' to decrypt.",
+              error: "Wallet is locked. Run 'cocod unlock <passphrase>' to decrypt.",
             },
             { status: 403 },
           );
@@ -97,15 +92,12 @@ export class DaemonStateManager {
     };
   }
 
-  requireUninitialized(
-    handler: (req: Request) => Promise<Response>,
-  ): RouteHandler {
+  requireUninitialized(handler: (req: Request) => Promise<Response>): RouteHandler {
     return async (req: Request, state: DaemonState) => {
       if (state.status !== "UNINITIALIZED") {
         return Response.json(
           {
-            error:
-              "Wallet already initialized. Delete ~/.cocod/config.json to reset.",
+            error: "Wallet already initialized. Delete ~/.cocod/config.json to reset.",
           },
           { status: 409 },
         );
@@ -114,9 +106,7 @@ export class DaemonStateManager {
     };
   }
 
-  requireLocked(
-    handler: (req: Request, state: LockedState) => Promise<Response>,
-  ): RouteHandler {
+  requireLocked(handler: (req: Request, state: LockedState) => Promise<Response>): RouteHandler {
     return async (req: Request, state: DaemonState) => {
       if (state.status !== "LOCKED") {
         if (state.status === "UNINITIALIZED") {
@@ -128,10 +118,7 @@ export class DaemonStateManager {
           );
         }
         if (state.status === "UNLOCKED") {
-          return Response.json(
-            { error: "Wallet is already unlocked" },
-            { status: 409 },
-          );
+          return Response.json({ error: "Wallet is already unlocked" }, { status: 409 });
         }
         return Response.json({ error: "Wallet error" }, { status: 500 });
       }

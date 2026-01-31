@@ -1,7 +1,4 @@
-export async function deriveKey(
-  passphrase: string,
-  salt: Uint8Array,
-): Promise<CryptoKey> {
+export async function deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const passphraseData = encoder.encode(passphrase);
 
@@ -39,15 +36,9 @@ export async function encryptMnemonic(
 
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
-  const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: iv },
-    key,
-    plaintext,
-  );
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, plaintext);
 
-  const combined = new Uint8Array(
-    iv.length + new Uint8Array(ciphertext).length,
-  );
+  const combined = new Uint8Array(iv.length + new Uint8Array(ciphertext).length);
   combined.set(iv, 0);
   combined.set(new Uint8Array(ciphertext), iv.length);
 
@@ -70,11 +61,7 @@ export async function decryptMnemonic(
   const iv = combined.slice(0, 12);
   const encrypted = combined.slice(12);
 
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: iv },
-    key,
-    encrypted,
-  );
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, encrypted);
 
   const decoder = new TextDecoder();
   return decoder.decode(decrypted);

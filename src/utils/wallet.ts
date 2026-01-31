@@ -1,8 +1,4 @@
-import {
-  initializeCoco,
-  ConsoleLogger,
-  type Manager,
-} from "coco-cashu-core";
+import { initializeCoco, ConsoleLogger, type Manager } from "coco-cashu-core";
 import { SqliteRepositories } from "coco-cashu-sqlite3";
 import { mnemonicToSeedSync } from "@scure/bip39";
 import { Database } from "sqlite3";

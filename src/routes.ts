@@ -1,9 +1,5 @@
 import { getDecodedToken } from "coco-cashu-core";
-import {
-  generateMnemonic,
-  mnemonicToSeedSync,
-  validateMnemonic,
-} from "@scure/bip39";
+import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { nip19 } from "nostr-tools";
 import { encryptMnemonic } from "./utils/crypto.js";
@@ -41,10 +37,7 @@ export function createRouteHandlers(
           let mnemonic: string;
           if (body.mnemonic) {
             if (!validateMnemonic(body.mnemonic, wordlist)) {
-              return Response.json(
-                { error: "Invalid mnemonic" },
-                { status: 400 },
-              );
+              return Response.json({ error: "Invalid mnemonic" }, { status: 400 });
             }
             mnemonic = body.mnemonic;
           } else {
@@ -60,10 +53,7 @@ export function createRouteHandlers(
           let config: WalletConfig;
 
           if (encrypted && body.passphrase) {
-            const { ciphertext, salt } = await encryptMnemonic(
-              mnemonic,
-              body.passphrase,
-            );
+            const { ciphertext, salt } = await encryptMnemonic(mnemonic, body.passphrase);
 
             await Bun.write(SALT_FILE, salt);
 
@@ -98,60 +88,43 @@ export function createRouteHandlers(
 
           return Response.json({ output });
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          return Response.json(
-            { error: `Init failed: ${message}` },
-            { status: 500 },
-          );
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json({ error: `Init failed: ${message}` }, { status: 500 });
         }
       }),
     },
     "/unlock": {
-      POST: stateManager.requireLocked(
-        async (req: Request, state: LockedState) => {
-          try {
-            const body = (await req.json()) as { passphrase: string };
+      POST: stateManager.requireLocked(async (req: Request, state: LockedState) => {
+        try {
+          const body = (await req.json()) as { passphrase: string };
 
-            if (!body.passphrase) {
-              return Response.json(
-                { error: "Passphrase required" },
-                { status: 400 },
-              );
-            }
-
-            const salt = await Bun.file(SALT_FILE).text();
-            const { decryptMnemonic } = await import("./utils/crypto.js");
-            const mnemonic = await decryptMnemonic(
-              state.encryptedMnemonic,
-              body.passphrase,
-              salt,
-            );
-
-            const config: WalletConfig = {
-              version: 1,
-              mnemonic,
-              encrypted: false,
-              mintUrl: state.mintUrl,
-              createdAt: new Date().toISOString(),
-            };
-
-            const manager = await initializeWallet(config);
-            const seed = mnemonicToSeedSync(mnemonic);
-
-            stateManager.setUnlocked(manager, state.mintUrl, seed);
-
-            return Response.json({ output: "Unlocked" });
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-            return Response.json(
-              { error: `Unlock failed: ${message}` },
-              { status: 401 },
-            );
+          if (!body.passphrase) {
+            return Response.json({ error: "Passphrase required" }, { status: 400 });
           }
-        },
-      ),
+
+          const salt = await Bun.file(SALT_FILE).text();
+          const { decryptMnemonic } = await import("./utils/crypto.js");
+          const mnemonic = await decryptMnemonic(state.encryptedMnemonic, body.passphrase, salt);
+
+          const config: WalletConfig = {
+            version: 1,
+            mnemonic,
+            encrypted: false,
+            mintUrl: state.mintUrl,
+            createdAt: new Date().toISOString(),
+          };
+
+          const manager = await initializeWallet(config);
+          const seed = mnemonicToSeedSync(mnemonic);
+
+          stateManager.setUnlocked(manager, state.mintUrl, seed);
+
+          return Response.json({ output: "Unlocked" });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json({ error: `Unlock failed: ${message}` }, { status: 401 });
+        }
+      }),
     },
     "/npc/address": {
       GET: stateManager.requireUnlocked(async (_req, state: UnlockedState) => {
@@ -214,10 +187,7 @@ export function createRouteHandlers(
     "/mints/bolt11": {
       POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
         const body = (await req.json()) as { amount: number };
-        const quote = await state.manager.quotes.createMintQuote(
-          state.mintUrl,
-          body.amount,
-        );
+        const quote = await state.manager.quotes.createMintQuote(state.mintUrl, body.amount);
         return Response.json({ output: quote.request });
       }),
     },
@@ -231,10 +201,7 @@ export function createRouteHandlers(
         const limit = limitParam ? parseInt(limitParam, 10) : 20;
 
         if (isNaN(offset) || offset < 0) {
-          return Response.json(
-            { error: "Invalid offset parameter" },
-            { status: 400 },
-          );
+          return Response.json({ error: "Invalid offset parameter" }, { status: 400 });
         }
 
         if (isNaN(limit) || limit < 1 || limit > 100) {
@@ -244,10 +211,7 @@ export function createRouteHandlers(
           );
         }
 
-        const entries = await state.manager.history.getPaginatedHistory(
-          offset,
-          limit,
-        );
+        const entries = await state.manager.history.getPaginatedHistory(offset, limit);
         return Response.json({ output: entries });
       }),
     },
@@ -258,18 +222,15 @@ export function createRouteHandlers(
         const stream = new ReadableStream({
           start(controller) {
             // Subscribe to history updates
-            const unsubscribe = state.manager.on(
-              "history:updated",
-              (payload) => {
-                const eventData = JSON.stringify({
-                  type: "history:updated",
-                  timestamp: new Date().toISOString(),
-                  data: payload,
-                });
-                const sseData = `data: ${eventData}\n\n`;
-                controller.enqueue(new TextEncoder().encode(sseData));
-              },
-            );
+            const unsubscribe = state.manager.on("history:updated", (payload) => {
+              const eventData = JSON.stringify({
+                type: "history:updated",
+                timestamp: new Date().toISOString(),
+                data: payload,
+              });
+              const sseData = `data: ${eventData}\n\n`;
+              controller.enqueue(new TextEncoder().encode(sseData));
+            });
 
             // Send periodic keep-alive pings to prevent connection timeout
             const keepAliveInterval = setInterval(() => {

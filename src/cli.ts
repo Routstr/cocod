@@ -1,9 +1,5 @@
 import { startDaemon } from "./daemon";
-import {
-  program,
-  handleDaemonCommand,
-  callDaemonStream,
-} from "./cli-shared";
+import { program, handleDaemonCommand, callDaemonStream } from "./cli-shared";
 
 program.name("cocod").description("Coco CLI - A Cashu wallet daemon");
 
@@ -77,9 +73,7 @@ program
   });
 
 // Mints - nested subcommands
-const mintsCmd = program
-  .command("mints")
-  .description("Mints operations");
+const mintsCmd = program.command("mints").description("Mints operations");
 
 mintsCmd
   .command("add <url>")
@@ -119,9 +113,7 @@ mintsCmd
   });
 
 // NPC - nested subcommands
-const npcCmd = program
-  .command("npc")
-  .description("NPC operations");
+const npcCmd = program.command("npc").description("NPC operations");
 
 npcCmd
   .command("address")
@@ -136,12 +128,11 @@ program
   .description("Wallet history operations")
   .option("--offset <number>", "Pagination offset (cannot be combined with --watch)", "0")
   .option("--limit <number>", "Number of entries to fetch (1-100, default: 20)", "20")
-  .option("--watch", "Stream history updates in real-time after fetching (can be combined with --limit)")
-  .action(async (options: {
-    offset?: string;
-    limit?: string;
-    watch?: boolean;
-  }) => {
+  .option(
+    "--watch",
+    "Stream history updates in real-time after fetching (can be combined with --limit)",
+  )
+  .action(async (options: { offset?: string; limit?: string; watch?: boolean }) => {
     const offset = parseInt(options.offset || "0", 10);
     const limit = parseInt(options.limit || "20", 10);
 
@@ -167,7 +158,7 @@ program
     queryParams.set("offset", offset.toString());
     queryParams.set("limit", limit.toString());
     const path = `/history?${queryParams.toString()}`;
-    
+
     await handleDaemonCommand(path);
 
     // If watch is enabled, continue streaming after initial fetch

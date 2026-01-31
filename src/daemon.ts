@@ -53,9 +53,7 @@ export async function startDaemon() {
 
       if (config.encrypted) {
         stateManager.setLocked(config.mnemonic, config.mintUrl);
-        console.log(
-          "Wallet locked. Run 'cocod unlock <passphrase>' to decrypt.",
-        );
+        console.log("Wallet locked. Run 'cocod unlock <passphrase>' to decrypt.");
       } else {
         const manager = await initializeWallet(config);
         const seed = mnemonicToSeedSync(config.mnemonic);
@@ -92,18 +90,13 @@ export async function startDaemon() {
       },
     },
     async fetch(req) {
-      return Response.json(
-        { error: `Unknown endpoint: ${req.url}` },
-        { status: 404 },
-      );
+      return Response.json({ error: `Unknown endpoint: ${req.url}` }, { status: 404 });
     },
   });
 
   console.log(`Daemon listening on ${SOCKET_PATH}`);
   if (stateManager.isUninitialized()) {
-    console.log(
-      "Wallet not initialized. Run 'cocod init [mnemonic]' to set up.",
-    );
+    console.log("Wallet not initialized. Run 'cocod init [mnemonic]' to set up.");
   }
 
   const cleanup = async () => {

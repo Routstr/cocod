@@ -9,10 +9,12 @@
   "scripts": {
     "start": "bun src/index.ts",
     "daemon": "bun src/index.ts daemon",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "format": "prettier --write ."
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "prettier": "^3.8.1"
   },
   "peerDependencies": {
     "typescript": "^5"
