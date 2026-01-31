@@ -63,16 +63,21 @@ cocod balance
 | `init [mnemonic]`     | Initialize wallet (generates mnemonic if not provided)          |
 | `unlock <passphrase>` | Unlock encrypted wallet                                         |
 | `balance`             | Get wallet balance across all mints                             |
-| `receive <token>`     | Receive a Cashu token                                           |
 | `history`             | View wallet history (supports `--offset`, `--limit`, `--watch`) |
+
+#### Receive Operations
+
+| Command                   | Description                                |
+| ------------------------- | ------------------------------------------ |
+| `receive cashu <token>`   | Receive a Cashu token                      |
+| `receive bolt11 <amount>` | Create Lightning invoice to receive tokens |
 
 #### Mint Management
 
-| Command                | Description                             |
-| ---------------------- | --------------------------------------- |
-| `mint add <url>`       | Add a new mint URL                      |
-| `mint list`            | List configured mints                   |
-| `mint bolt11 <amount>` | Create Lightning invoice to mint tokens |
+| Command          | Description           |
+| ---------------- | --------------------- |
+| `mint add <url>` | Add a new mint URL    |
+| `mint list`      | List configured mints |
 
 #### NPC (npub.cash)
 
@@ -95,10 +100,10 @@ cocod balance
 cocod mint add https://mint.example.com
 
 # Create a Lightning invoice for 1000 sats
-cocod mint bolt11 1000
+cocod receive bolt11 1000
 
 # Receive a Cashu token
-cocod receive "cashuAeyJ0b2tlbiI6W3sicHJvb2ZzIjpbeyJ..."
+cocod receive cashu "cashuAeyJ0b2tlbiI6W3sicHJvb2ZzIjpbeyJ..."
 
 # View last 10 history entries
 cocod history --limit 10

@@ -147,7 +147,7 @@ export function createRouteHandlers(
         return Response.json({ output: augmentedBalance });
       }),
     },
-    "/receive": {
+    "/receive/cashu": {
       POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
         try {
           const body = (await req.json()) as { token: string };
@@ -162,6 +162,13 @@ export function createRouteHandlers(
         } catch {
           return Response.json({ error: "Receive failed" });
         }
+      }),
+    },
+    "/receive/bolt11": {
+      POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
+        const body = (await req.json()) as { amount: number };
+        const quote = await state.manager.quotes.createMintQuote(state.mintUrl, body.amount);
+        return Response.json({ output: quote.request });
       }),
     },
     "/mints/add": {
@@ -188,13 +195,6 @@ export function createRouteHandlers(
       }),
     },
 
-    "/mints/bolt11": {
-      POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
-        const body = (await req.json()) as { amount: number };
-        const quote = await state.manager.quotes.createMintQuote(state.mintUrl, body.amount);
-        return Response.json({ output: quote.request });
-      }),
-    },
     "/history": {
       GET: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
         const url = new URL(req.url);

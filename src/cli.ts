@@ -45,14 +45,26 @@ program
     await handleDaemonCommand("/balance");
   });
 
-// Receive - POST command with argument
-program
-  .command("receive <token>")
+// Receive - nested subcommands
+const receiveCmd = program.command("receive").description("Receive operations");
+
+receiveCmd
+  .command("cashu <token>")
   .description("Receive Cashu token")
   .action(async (token: string) => {
-    await handleDaemonCommand("/receive", {
+    await handleDaemonCommand("/receive/cashu", {
       method: "POST",
       body: { token },
+    });
+  });
+
+receiveCmd
+  .command("bolt11 <amount>")
+  .description("Create Lightning invoice to receive tokens")
+  .action(async (amount: string) => {
+    await handleDaemonCommand("/receive/bolt11", {
+      method: "POST",
+      body: { amount: parseInt(amount) },
     });
   });
 
@@ -99,16 +111,6 @@ mintsCmd
     await handleDaemonCommand("/mints/info", {
       method: "POST",
       body: { url },
-    });
-  });
-
-mintsCmd
-  .command("bolt11 <amount>")
-  .description("Create Lightning invoice to mint tokens")
-  .action(async (amount: string) => {
-    await handleDaemonCommand("/mints/bolt11", {
-      method: "POST",
-      body: { amount: parseInt(amount) },
     });
   });
 
