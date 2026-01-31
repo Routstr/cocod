@@ -2,6 +2,7 @@ import { startDaemon } from "./daemon";
 import {
   program,
   handleDaemonCommand,
+  callDaemonStream,
 } from "./cli-shared";
 
 program.name("cocod").description("Coco CLI - A Cashu wallet daemon");
@@ -117,6 +118,60 @@ npcCmd
   .description("Get NPC user address")
   .action(async () => {
     await handleDaemonCommand("/npc/address");
+  });
+
+// History - with pagination and watch options
+program
+  .command("history")
+  .description("Wallet history operations")
+  .option("--offset <number>", "Pagination offset (cannot be combined with --watch)", "0")
+  .option("--limit <number>", "Number of entries to fetch (1-100, default: 20)", "20")
+  .option("--watch", "Stream history updates in real-time after fetching (can be combined with --limit)")
+  .action(async (options: {
+    offset?: string;
+    limit?: string;
+    watch?: boolean;
+  }) => {
+    const offset = parseInt(options.offset || "0", 10);
+    const limit = parseInt(options.limit || "20", 10);
+
+    // Validate: offset and watch cannot be combined
+    if (offset > 0 && options.watch) {
+      console.error("Error: --offset cannot be combined with --watch");
+      process.exit(1);
+    }
+
+    // Validate numbers
+    if (isNaN(offset) || offset < 0) {
+      console.error("Error: --offset must be a non-negative number");
+      process.exit(1);
+    }
+
+    if (isNaN(limit) || limit < 1 || limit > 100) {
+      console.error("Error: --limit must be between 1 and 100");
+      process.exit(1);
+    }
+
+    // Fetch paginated history first (pass params as query string, not body)
+    const queryParams = new URLSearchParams();
+    queryParams.set("offset", offset.toString());
+    queryParams.set("limit", limit.toString());
+    const path = `/history?${queryParams.toString()}`;
+    
+    await handleDaemonCommand(path);
+
+    // If watch is enabled, continue streaming after initial fetch
+    if (options.watch) {
+      try {
+        await callDaemonStream("/events", (data) => {
+          console.log(JSON.stringify(data));
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(message);
+        process.exit(1);
+      }
+    }
   });
 
 // Daemon command - special case, doesn't go through IPC

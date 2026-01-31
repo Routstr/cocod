@@ -101,4 +101,57 @@ export async function handleDaemonCommand(
   }
 }
 
+export async function callDaemonStream(
+  path: string,
+  onData: (data: unknown) => void
+): Promise<void> {
+  await ensureDaemonRunning();
+
+  const init: RequestInit & { unix: string } = {
+    unix: SOCKET_PATH,
+    method: "GET",
+  } as RequestInit & { unix: string };
+
+  const response = await fetch(`http://localhost${path}`, init);
+
+  if (!response.ok) {
+    const errorData = (await response.json()) as { error?: string };
+    throw new Error(errorData.error || `HTTP ${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error("No response body");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const jsonStr = line.slice(6);
+          try {
+            const data = JSON.parse(jsonStr);
+            onData(data);
+          } catch {
+            // Skip malformed JSON
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export { program, callDaemon };
