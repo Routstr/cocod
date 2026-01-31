@@ -1,8 +1,9 @@
 {
   "name": "cocod",
+  "version": "0.0.1",
   "module": "src/index.ts",
   "type": "module",
-  "private": true,
+  "private": false,
   "bin": {
     "cocod": "./src/index.ts"
   },

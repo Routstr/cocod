@@ -130,10 +130,10 @@ export function createRouteHandlers(
       GET: stateManager.requireUnlocked(async (_req, state: UnlockedState) => {
         const info = await state.manager.ext.npc.getInfo();
         if (info.name) {
-          return Response.json({ output: `${info.name}@npuby.cash` });
+          return Response.json({ output: `${info.name}@npubx.cash` });
         }
         const npub = nip19.npubEncode(info.pubkey);
-        return Response.json({ output: `${npub}@npuby.cash` });
+        return Response.json({ output: `${npub}@npubx.cash` });
       }),
     },
 

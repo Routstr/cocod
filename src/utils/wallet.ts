@@ -31,7 +31,7 @@ export async function initializeWallet(
   const logger = new ConsoleLogger("Coco", { level: "info" });
   const sk = privateKeyFromSeedWords(mnemonic);
   const signer = async (t: EventTemplate) => finalizeEvent(t, sk);
-  const npcPlugin = new NPCPlugin("https://npuby.cash", signer, {
+  const npcPlugin = new NPCPlugin("https://npubx.cash", signer, {
     useWebsocket: true,
     logger,
   });
