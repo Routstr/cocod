@@ -135,9 +135,9 @@ There is no formatter config in this repo. Match existing style and avoid drive-
 ### Imports
 
 - Order:
-  1) external packages
-  2) blank line
-  3) local relative imports
+  1. external packages
+  2. blank line
+  3. local relative imports
 - Prefer `import type { ... }` for type-only imports.
 - Prefer named imports; avoid default imports unless the package is default-first.
 - Keep relative imports extensionless (match current code). Only include `.js` when required by ESM packages.

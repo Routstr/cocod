@@ -140,7 +140,11 @@ export function createRouteHandlers(
     "/balance": {
       GET: stateManager.requireUnlocked(async (_req, state: UnlockedState) => {
         const balance = await state.manager.wallet.getBalances();
-        return Response.json({ output: balance });
+        const augmentedBalance: Record<string, { [unit: string]: number }> = {};
+        Object.keys(balance).forEach((url) => {
+          augmentedBalance[url] = { sats: balance[url] || 0 };
+        });
+        return Response.json({ output: augmentedBalance });
       }),
     },
     "/receive": {
