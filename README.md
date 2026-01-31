@@ -47,35 +47,35 @@ bun src/index.ts balance
 
 #### Wallet Operations
 
-| Command | Description |
-|---------|-------------|
-| `status` | Check daemon and wallet status |
-| `init [mnemonic]` | Initialize wallet (generates mnemonic if not provided) |
-| `unlock <passphrase>` | Unlock encrypted wallet |
-| `balance` | Get wallet balance across all mints |
-| `receive <token>` | Receive a Cashu token |
-| `history` | View wallet history (supports `--offset`, `--limit`, `--watch`) |
+| Command               | Description                                                     |
+| --------------------- | --------------------------------------------------------------- |
+| `status`              | Check daemon and wallet status                                  |
+| `init [mnemonic]`     | Initialize wallet (generates mnemonic if not provided)          |
+| `unlock <passphrase>` | Unlock encrypted wallet                                         |
+| `balance`             | Get wallet balance across all mints                             |
+| `receive <token>`     | Receive a Cashu token                                           |
+| `history`             | View wallet history (supports `--offset`, `--limit`, `--watch`) |
 
 #### Mint Management
 
-| Command | Description |
-|---------|-------------|
-| `mint add <url>` | Add a new mint URL |
-| `mint list` | List configured mints |
+| Command                | Description                             |
+| ---------------------- | --------------------------------------- |
+| `mint add <url>`       | Add a new mint URL                      |
+| `mint list`            | List configured mints                   |
 | `mint bolt11 <amount>` | Create Lightning invoice to mint tokens |
 
-#### NPC (Nostr Payment Code)
+#### NPC (npub.cash)
 
-| Command | Description |
-|---------|-------------|
+| Command       | Description                            |
+| ------------- | -------------------------------------- |
 | `npc address` | Get NPC address for receiving payments |
 
 #### Daemon Control
 
-| Command | Description |
-|---------|-------------|
-| `ping` | Test daemon connectivity |
-| `stop` | Stop the background daemon |
+| Command  | Description                            |
+| -------- | -------------------------------------- |
+| `ping`   | Test daemon connectivity               |
+| `stop`   | Stop the background daemon             |
 | `daemon` | Start the background daemon explicitly |
 
 ### Examples
@@ -109,6 +109,7 @@ The CLI automatically starts the daemon if it's not already running.
 ### IPC Communication
 
 Communication happens over a Unix domain socket:
+
 - Default: `~/.cocod/cocod.sock`
 - Configurable via `COCOD_SOCKET` environment variable
 
@@ -116,10 +117,10 @@ Communication happens over a Unix domain socket:
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
+| Variable       | Default               | Description      |
+| -------------- | --------------------- | ---------------- |
 | `COCOD_SOCKET` | `~/.cocod/cocod.sock` | Unix socket path |
-| `COCOD_PID` | `~/.cocod/cocod.pid` | PID file path |
+| `COCOD_PID`    | `~/.cocod/cocod.pid`  | PID file path    |
 
 ### Files
 
