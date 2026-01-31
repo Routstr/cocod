@@ -16,15 +16,19 @@ program
   .command("init [mnemonic]")
   .description("Initialize wallet with optional mnemonic (generates one if not provided)")
   .option("--passphrase <passphrase>", "Encrypt wallet with passphrase")
-  .action(async (mnemonic: string | undefined, options: { passphrase?: string }) => {
-    await handleDaemonCommand("/init", {
-      method: "POST",
-      body: {
-        mnemonic,
-        passphrase: options.passphrase,
-      },
-    });
-  });
+  .option("--mint-url <url>", "Default mint URL (default: https://mint.minibits.cash/Bitcoin)")
+  .action(
+    async (mnemonic: string | undefined, options: { passphrase?: string; mintUrl?: string }) => {
+      await handleDaemonCommand("/init", {
+        method: "POST",
+        body: {
+          mnemonic,
+          passphrase: options.passphrase,
+          mintUrl: options.mintUrl,
+        },
+      });
+    },
+  );
 
 // Unlock - unlock encrypted wallet
 program
@@ -61,10 +65,11 @@ receiveCmd
 receiveCmd
   .command("bolt11 <amount>")
   .description("Create Lightning invoice to receive tokens")
-  .action(async (amount: string) => {
+  .option("--mint-url <url>", "Mint URL to use (defaults to the mint URL configured during init)")
+  .action(async (amount: string, options: { mintUrl?: string }) => {
     await handleDaemonCommand("/receive/bolt11", {
       method: "POST",
-      body: { amount: parseInt(amount) },
+      body: { amount: parseInt(amount), mintUrl: options.mintUrl },
     });
   });
 
@@ -74,20 +79,22 @@ const sendCmd = program.command("send").description("Send operations");
 sendCmd
   .command("cashu <amount>")
   .description("Create Cashu token to send")
-  .action(async (amount: string) => {
+  .option("--mint-url <url>", "Mint URL to use (defaults to the mint URL configured during init)")
+  .action(async (amount: string, options: { mintUrl?: string }) => {
     await handleDaemonCommand("/send/cashu", {
       method: "POST",
-      body: { amount: parseInt(amount) },
+      body: { amount: parseInt(amount), mintUrl: options.mintUrl },
     });
   });
 
 sendCmd
   .command("bolt11 <invoice>")
   .description("Pay Lightning invoice")
-  .action(async (invoice: string) => {
+  .option("--mint-url <url>", "Mint URL to use (defaults to the mint URL configured during init)")
+  .action(async (invoice: string, options: { mintUrl?: string }) => {
     await handleDaemonCommand("/send/bolt11", {
       method: "POST",
-      body: { invoice },
+      body: { invoice, mintUrl: options.mintUrl },
     });
   });
 

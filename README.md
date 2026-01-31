@@ -65,6 +65,13 @@ cocod balance
 | `balance`             | Get wallet balance across all mints                             |
 | `history`             | View wallet history (supports `--offset`, `--limit`, `--watch`) |
 
+**Options:**
+
+| Option               | Description                                          |
+| -------------------- | ---------------------------------------------------- |
+| `--passphrase <str>` | Encrypt wallet during init                           |
+| `--mint-url <url>`   | Set default mint URL (default: minibits) during init |
+
 #### Receive Operations
 
 | Command                   | Description                                |
@@ -72,12 +79,24 @@ cocod balance
 | `receive cashu <token>`   | Receive a Cashu token                      |
 | `receive bolt11 <amount>` | Create Lightning invoice to receive tokens |
 
+**Options for `receive bolt11`:**
+
+| Option             | Description                                    |
+| ------------------ | ---------------------------------------------- |
+| `--mint-url <url>` | Override the default mint URL for this invoice |
+
 #### Send Operations
 
 | Command                 | Description                |
 | ----------------------- | -------------------------- |
 | `send cashu <amount>`   | Create Cashu token to send |
 | `send bolt11 <invoice>` | Pay Lightning invoice      |
+
+**Options for `send cashu` and `send bolt11`:**
+
+| Option             | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| `--mint-url <url>` | Override the default mint URL for this transaction |
 
 #### Mint Management
 
@@ -100,20 +119,51 @@ cocod balance
 | `stop`   | Stop the background daemon             |
 | `daemon` | Start the background daemon explicitly |
 
+### Mint URL Configuration
+
+All transactions require a mint URL to interact with a Cashu mint. The default mint URL is set during wallet initialization and stored in the wallet config.
+
+**Default mint URL:** `https://mint.minibits.cash/Bitcoin`
+
+**Override per-transaction:** Most commands support `--mint-url <url>` to override the default for a single transaction:
+
+```bash
+# Initialize with a custom default mint
+cocod init --mint-url https://mint.example.com/Bitcoin
+
+# Use a different mint for a single transaction
+cocod receive bolt11 1000 --mint-url https://another.mint.com
+
+# Send using a specific mint
+cocod send cashu 500 --mint-url https://mint.example.com
+```
+
+The mint URL override is useful when:
+
+- Testing different mints without changing your default
+- Sending/receiving across multiple mints
+- Working with specific mint communities
+
 ### Examples
 
 ```bash
 # Add a mint
 cocod mint add https://mint.example.com
 
-# Create a Lightning invoice for 1000 sats
+# Create a Lightning invoice for 1000 sats (uses default mint)
 cocod receive bolt11 1000
+
+# Create an invoice using a specific mint for this transaction
+cocod receive bolt11 1000 --mint-url https://mint.example.com
 
 # Receive a Cashu token
 cocod receive cashu "cashuAeyJ0b2tlbiI6W3sicHJvb2ZzIjpbeyJ..."
 
-# Create a Cashu token to send (1000 sats)
+# Create a Cashu token to send (uses default mint)
 cocod send cashu 1000
+
+# Send from a specific mint
+cocod send cashu 1000 --mint-url https://mint.example.com
 
 # Pay a Lightning invoice
 cocod send bolt11 "lnbc1000n1..."

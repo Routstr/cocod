@@ -166,16 +166,18 @@ export function createRouteHandlers(
     },
     "/receive/bolt11": {
       POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
-        const body = (await req.json()) as { amount: number };
-        const quote = await state.manager.quotes.createMintQuote(state.mintUrl, body.amount);
+        const body = (await req.json()) as { amount: number; mintUrl?: string };
+        const mintUrl = body.mintUrl || state.mintUrl;
+        const quote = await state.manager.quotes.createMintQuote(mintUrl, body.amount);
         return Response.json({ output: quote.request });
       }),
     },
     "/send/cashu": {
       POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
         try {
-          const body = (await req.json()) as { amount: number };
-          const prepared = await state.manager.send.prepareSend(state.mintUrl, body.amount);
+          const body = (await req.json()) as { amount: number; mintUrl?: string };
+          const mintUrl = body.mintUrl || state.mintUrl;
+          const prepared = await state.manager.send.prepareSend(mintUrl, body.amount);
           const result = await state.manager.send.executePreparedSend(prepared.id);
           const token = state.manager.wallet.encodeToken(result.token);
           return Response.json({ output: token });
@@ -188,11 +190,9 @@ export function createRouteHandlers(
     "/send/bolt11": {
       POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
         try {
-          const body = (await req.json()) as { invoice: string };
-          const prepared = await state.manager.quotes.prepareMeltBolt11(
-            state.mintUrl,
-            body.invoice,
-          );
+          const body = (await req.json()) as { invoice: string; mintUrl?: string };
+          const mintUrl = body.mintUrl || state.mintUrl;
+          const prepared = await state.manager.quotes.prepareMeltBolt11(mintUrl, body.invoice);
           await state.manager.quotes.executeMelt(prepared.id);
           return Response.json({ output: `Paid invoice: ${body.invoice}` });
         } catch (error) {
