@@ -6,6 +6,40 @@ import {
 
 program.name("cocod").description("Coco CLI - A Cashu wallet daemon");
 
+// Status - check daemon/wallet state
+program
+  .command("status")
+  .description("Check daemon and wallet status")
+  .action(async () => {
+    await handleDaemonCommand("/status");
+  });
+
+// Init - initialize wallet
+program
+  .command("init [mnemonic]")
+  .description("Initialize wallet with optional mnemonic (generates one if not provided)")
+  .option("--passphrase <passphrase>", "Encrypt wallet with passphrase")
+  .action(async (mnemonic: string | undefined, options: { passphrase?: string }) => {
+    await handleDaemonCommand("/init", {
+      method: "POST",
+      body: {
+        mnemonic,
+        passphrase: options.passphrase,
+      },
+    });
+  });
+
+// Unlock - unlock encrypted wallet
+program
+  .command("unlock <passphrase>")
+  .description("Unlock encrypted wallet with passphrase")
+  .action(async (passphrase: string) => {
+    await handleDaemonCommand("/unlock", {
+      method: "POST",
+      body: { passphrase },
+    });
+  });
+
 // Balance - simple GET command
 program
   .command("balance")

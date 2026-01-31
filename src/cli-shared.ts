@@ -1,6 +1,7 @@
 import { program } from "commander";
 
-const SOCKET_PATH = process.env.COCOD_SOCKET || "/tmp/cocod.sock";
+const CONFIG_DIR = `${process.env.HOME || process.env.USERPROFILE}/.cocod`;
+const SOCKET_PATH = process.env.COCOD_SOCKET || `${CONFIG_DIR}/cocod.sock`;
 
 export interface CommandResponse {
   output?: string;
