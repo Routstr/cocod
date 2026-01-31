@@ -72,6 +72,13 @@ cocod balance
 | `receive cashu <token>`   | Receive a Cashu token                      |
 | `receive bolt11 <amount>` | Create Lightning invoice to receive tokens |
 
+#### Send Operations
+
+| Command                 | Description                |
+| ----------------------- | -------------------------- |
+| `send cashu <amount>`   | Create Cashu token to send |
+| `send bolt11 <invoice>` | Pay Lightning invoice      |
+
 #### Mint Management
 
 | Command          | Description           |
@@ -104,6 +111,12 @@ cocod receive bolt11 1000
 
 # Receive a Cashu token
 cocod receive cashu "cashuAeyJ0b2tlbiI6W3sicHJvb2ZzIjpbeyJ..."
+
+# Create a Cashu token to send (1000 sats)
+cocod send cashu 1000
+
+# Pay a Lightning invoice
+cocod send bolt11 "lnbc1000n1..."
 
 # View last 10 history entries
 cocod history --limit 10

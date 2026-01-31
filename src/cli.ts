@@ -68,6 +68,29 @@ receiveCmd
     });
   });
 
+// Send - nested subcommands
+const sendCmd = program.command("send").description("Send operations");
+
+sendCmd
+  .command("cashu <amount>")
+  .description("Create Cashu token to send")
+  .action(async (amount: string) => {
+    await handleDaemonCommand("/send/cashu", {
+      method: "POST",
+      body: { amount: parseInt(amount) },
+    });
+  });
+
+sendCmd
+  .command("bolt11 <invoice>")
+  .description("Pay Lightning invoice")
+  .action(async (invoice: string) => {
+    await handleDaemonCommand("/send/bolt11", {
+      method: "POST",
+      body: { invoice },
+    });
+  });
+
 // Ping
 program
   .command("ping")
