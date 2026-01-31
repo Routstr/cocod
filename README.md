@@ -18,7 +18,17 @@ A Cashu wallet CLI and daemon built with Bun and TypeScript.
 
 ## Installation
 
+### From npm (recommended)
+
 ```bash
+bun install --global cocod
+```
+
+### From source
+
+```bash
+git clone <repository-url>
+cd cocod
 bun install
 ```
 
@@ -28,19 +38,19 @@ bun install
 
 ```bash
 # Check daemon status
-bun src/index.ts status
+cocod status
 
 # Initialize wallet (generates mnemonic automatically)
-bun src/index.ts init
+cocod init
 
 # Or initialize with your own mnemonic
-bun src/index.ts init "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+cocod init "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 # Unlock encrypted wallet (if passphrase was set)
-bun src/index.ts unlock "your-passphrase"
+cocod unlock "your-passphrase"
 
 # Check balance
-bun src/index.ts balance
+cocod balance
 ```
 
 ### Available Commands
@@ -82,19 +92,19 @@ bun src/index.ts balance
 
 ```bash
 # Add a mint
-bun src/index.ts mint add https://mint.example.com
+cocod mint add https://mint.example.com
 
 # Create a Lightning invoice for 1000 sats
-bun src/index.ts mint bolt11 1000
+cocod mint bolt11 1000
 
 # Receive a Cashu token
-bun src/index.ts receive "cashuAeyJ0b2tlbiI6W3sicHJvb2ZzIjpbeyJ..."
+cocod receive "cashuAeyJ0b2tlbiI6W3sicHJvb2ZzIjpbeyJ..."
 
 # View last 10 history entries
-bun src/index.ts history --limit 10
+cocod history --limit 10
 
 # Watch history in real-time
-bun src/index.ts history --watch
+cocod history --watch
 ```
 
 ## Architecture
@@ -133,7 +143,7 @@ Communication happens over a Unix domain socket:
 ### Commands
 
 ```bash
-# Run CLI
+# Run CLI from source
 bun src/index.ts --help
 
 # Run with npm-style script
