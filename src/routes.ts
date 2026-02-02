@@ -128,23 +128,33 @@ export function createRouteHandlers(
     },
     "/npc/address": {
       GET: stateManager.requireUnlocked(async (_req, state: UnlockedState) => {
-        const info = await state.manager.ext.npc.getInfo();
-        if (info.name) {
-          return Response.json({ output: `${info.name}@npubx.cash` });
+        try {
+          const info = await state.manager.ext.npc.getInfo();
+          if (info.name) {
+            return Response.json({ output: `${info.name}@npubx.cash` });
+          }
+          const npub = nip19.npubEncode(info.pubkey);
+          return Response.json({ output: `${npub}@npubx.cash` });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json({ error: `Failed to get address: ${message}` }, { status: 500 });
         }
-        const npub = nip19.npubEncode(info.pubkey);
-        return Response.json({ output: `${npub}@npubx.cash` });
       }),
     },
 
     "/balance": {
       GET: stateManager.requireUnlocked(async (_req, state: UnlockedState) => {
-        const balance = await state.manager.wallet.getBalances();
-        const augmentedBalance: Record<string, { [unit: string]: number }> = {};
-        Object.keys(balance).forEach((url) => {
-          augmentedBalance[url] = { sats: balance[url] || 0 };
-        });
-        return Response.json({ output: augmentedBalance });
+        try {
+          const balance = await state.manager.wallet.getBalances();
+          const augmentedBalance: Record<string, { [unit: string]: number }> = {};
+          Object.keys(balance).forEach((url) => {
+            augmentedBalance[url] = { sats: balance[url] || 0 };
+          });
+          return Response.json({ output: augmentedBalance });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json({ error: `Failed to get balance: ${message}` }, { status: 500 });
+        }
       }),
     },
     "/receive/cashu": {
@@ -159,17 +169,25 @@ export function createRouteHandlers(
             0,
           );
           return Response.json({ output: `Received ${total}` });
-        } catch {
+        } catch (e) {
+          if (e instanceof Error) {
+            return Response.json({ error: e.message });
+          }
           return Response.json({ error: "Receive failed" });
         }
       }),
     },
     "/receive/bolt11": {
       POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
-        const body = (await req.json()) as { amount: number; mintUrl?: string };
-        const mintUrl = body.mintUrl || state.mintUrl;
-        const quote = await state.manager.quotes.createMintQuote(mintUrl, body.amount);
-        return Response.json({ output: quote.request });
+        try {
+          const body = (await req.json()) as { amount: number; mintUrl?: string };
+          const mintUrl = body.mintUrl || state.mintUrl;
+          const quote = await state.manager.quotes.createMintQuote(mintUrl, body.amount);
+          return Response.json({ output: quote.request });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json({ error: `Failed to create invoice: ${message}` }, { status: 500 });
+        }
       }),
     },
     "/send/cashu": {
@@ -203,25 +221,39 @@ export function createRouteHandlers(
     },
     "/mints/add": {
       POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
-        const body = (await req.json()) as { url: string };
-        await state.manager.mint.addMint(body.url, { trusted: true });
-        return Response.json({ output: `Added mint: ${body.url}` });
+        try {
+          const body = (await req.json()) as { url: string };
+          await state.manager.mint.addMint(body.url, { trusted: true });
+          return Response.json({ output: `Added mint: ${body.url}` });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json({ error: `Failed to add mint: ${message}` }, { status: 500 });
+        }
       }),
     },
     "/mints/list": {
       GET: stateManager.requireUnlocked(async (_req, state: UnlockedState) => {
-        const mints = await state.manager.mint.getAllTrustedMints();
-        console.log(mints);
-        return Response.json({
-          output: mints.map((m) => m.mintUrl).join("\n"),
-        });
+        try {
+          const mints = await state.manager.mint.getAllTrustedMints();
+          return Response.json({
+            output: mints.map((m) => m.mintUrl).join("\n"),
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json({ error: `Failed to list mints: ${message}` }, { status: 500 });
+        }
       }),
     },
     "/mints/info": {
       POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
-        const body = (await req.json()) as { url: string };
-        const info = await state.manager.mint.getMintInfo(body.url);
-        return Response.json({ output: info });
+        try {
+          const body = (await req.json()) as { url: string };
+          const info = await state.manager.mint.getMintInfo(body.url);
+          return Response.json({ output: info });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json({ error: `Failed to get mint info: ${message}` }, { status: 500 });
+        }
       }),
     },
 
