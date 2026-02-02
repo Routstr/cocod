@@ -141,6 +141,46 @@ export function createRouteHandlers(
         }
       }),
     },
+    "/npc/username": {
+      POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
+        try {
+          const { username, confirm } = (await req.json()) as {
+            username: string;
+            confirm?: boolean;
+          };
+          if (!username) {
+            return Response.json({ error: "Username is required" }, { status: 400 });
+          }
+          if (confirm) {
+            const res = await state.manager.ext.npc.setUsername(username, confirm);
+            if (res.success) {
+              return Response.json({ output: res });
+            } else {
+              return Response.json({
+                error: `Failed to set username. Required amount: ${res.pr.amount}. Required mints: ${res.pr.mints?.join(",")}`,
+              });
+            }
+          } else {
+            const res = await state.manager.ext.npc.setUsername(username);
+            if (res.success) {
+              return Response.json({ output: res });
+            } else if (res.success === false) {
+              return Response.json(
+                {
+                  error: `Payment required to set username: ${res.pr.amount || 0} SATS. Use 'cocod npc username ${username} --confirm' to proceed`,
+                },
+                { status: 402 },
+              );
+            } else {
+              return Response.json({ error: "Invalid response" });
+            }
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json({ error: `Username operation failed: ${message}` }, { status: 500 });
+        }
+      }),
+    },
 
     "/balance": {
       GET: stateManager.requireUnlocked(async (_req, state: UnlockedState) => {

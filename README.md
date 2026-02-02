@@ -107,9 +107,14 @@ cocod balance
 
 #### NPC (npub.cash)
 
-| Command       | Description                            |
-| ------------- | -------------------------------------- |
-| `npc address` | Get NPC address for receiving payments |
+| Command               | Description                                   |
+| --------------------- | --------------------------------------------- |
+| `npc address`         | Get NPC address for receiving payments        |
+| `npc username <name>` | Buy/set NPC username (use `--confirm` to pay) |
+
+NPC Lightning Addresses are email-style identifiers (like `name@npubx.cash`) that route payments to your Nostr pubkey. If you have not purchased a username, your address uses your npub instead. Purchasing is a two-step flow: run `cocod npc username <name>` to see the required sats, then re-run with `--confirm` to complete the payment.
+
+Tip: `cocod npc username <name>` returns the required payment first; re-run with `--confirm` to complete the purchase.
 
 #### Daemon Control
 
@@ -167,6 +172,12 @@ cocod send cashu 1000 --mint-url https://mint.example.com
 
 # Pay a Lightning invoice
 cocod send bolt11 "lnbc1000n1..."
+
+# Check NPC username price
+cocod npc username myname
+
+# Buy NPC username
+cocod npc username myname --confirm
 
 # View last 10 history entries
 cocod history --limit 10
