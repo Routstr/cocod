@@ -35,3 +35,14 @@ jobs:
           git add package.json bun.lock
           git commit -m "chore(release): v$VERSION [skip ci]"
           git push
+      - name: Publish to skill registry
+        env:
+          TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+        run: |
+          VERSION=$(bun -e 'console.log(require("./package.json").version)')
+          SLUG=$(bun -e 'console.log(require("./package.json").name)')
+          curl -X POST "https://www.clawhub.ai/api/v1/skills" \
+            -H "Authorization: Bearer $CLAWHUB_TOKEN" \
+            -H "Accept: application/json" \
+            -F "payload={\"slug\":\"$SLUG\",\"displayName\":\"Cocod\",\"version\":\"$VERSION\",\"changelog\":\"Release v$VERSION\",\"tags\":[\"latest\"]}" \
+            -F "files=@SKILL.md;filename=SKILL.md"
