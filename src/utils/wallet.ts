@@ -1,7 +1,7 @@
 import { initializeCoco, ConsoleLogger, type Manager } from "coco-cashu-core";
-import { SqliteRepositories } from "coco-cashu-sqlite3";
+import { SqliteRepositories } from "coco-cashu-sqlite-bun";
+import { Database } from "bun:sqlite";
 import { mnemonicToSeedSync } from "@scure/bip39";
-import { Database } from "sqlite3";
 import { NPCPlugin } from "coco-cashu-plugin-npc";
 import { privateKeyFromSeedWords } from "nostr-tools/nip06";
 import { finalizeEvent, type EventTemplate } from "nostr-tools";
