@@ -12,6 +12,7 @@ A Cashu wallet CLI and daemon built with Bun and TypeScript.
 - **Token Operations**: Receive Cashu tokens, check balances across mints
 - **Lightning Integration**: Create BOLT11 invoices to mint new tokens
 - **Nostr Payment Codes**: NPC addresses for receiving payments
+- **HTTP 402 Payments**: Parse and settle NUT-24 X-Cashu web payment requests
 - **Transaction History**: View and paginate wallet history
 - **Real-time Updates**: SSE endpoint for live event streaming
 - **Multi-mint Support**: Add and manage multiple Cashu mints
@@ -116,6 +117,13 @@ NPC Lightning Addresses are email-style identifiers (like `name@npubx.cash`) tha
 
 Tip: `cocod npc username <name>` returns the required payment first; re-run with `--confirm` to complete the purchase.
 
+#### HTTP 402 (X-Cashu / NUT-24)
+
+| Command                    | Description                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------- |
+| `x-cashu parse <request>`  | Parse an encoded 402 `X-Cashu` request and show required amount/unit/mint details |
+| `x-cashu handle <request>` | Settle the request and return an `X-Cashu: cashuB...` header value for retry      |
+
 #### Daemon Control
 
 | Command  | Description                            |
@@ -178,6 +186,12 @@ cocod npc username myname
 
 # Buy NPC username
 cocod npc username myname --confirm
+
+# Parse a 402 X-Cashu payment request
+cocod x-cashu parse "<encoded-x-cashu-request>"
+
+# Settle a 402 request and get a payment header for retry
+cocod x-cashu handle "<encoded-x-cashu-request>"
 
 # View last 10 history entries
 cocod history --limit 10

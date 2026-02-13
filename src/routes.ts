@@ -1,4 +1,4 @@
-import { getDecodedToken } from "coco-cashu-core";
+import { getDecodedToken, getEncodedToken } from "coco-cashu-core";
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { nip19 } from "nostr-tools";
@@ -256,6 +256,75 @@ export function createRouteHandlers(
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           return Response.json({ error: `Payment failed: ${message}` }, { status: 500 });
+        }
+      }),
+    },
+    "/x-cashu/parse": {
+      POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
+        try {
+          const { request } = (await req.json()) as { request?: string };
+          if (!request) {
+            return Response.json({ error: "Request is required" }, { status: 400 });
+          }
+
+          const parsed = await state.manager.wallet.processPaymentRequest(request);
+          const mintMsg =
+            parsed.requiredMints?.length > 0
+              ? `from one of ${parsed.requiredMints.length} mints`
+              : "from any mint";
+          const matchingMints =
+            parsed.matchingMints.length > 0 ? parsed.matchingMints.join("\n") : "No matching mint!";
+          const msg = `Request requires payment of ${parsed.amount || 0} Sats ${mintMsg}.\nMatching mints:\n${matchingMints}`;
+          return Response.json({ output: msg });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json(
+            { error: `Failed to parse X-Cashu request: ${message}` },
+            { status: 500 },
+          );
+        }
+      }),
+    },
+    "/x-cashu/handle": {
+      POST: stateManager.requireUnlocked(async (req, state: UnlockedState) => {
+        try {
+          const body = (await req.json()) as { request?: string; mintUrl?: string };
+          if (!body.request) {
+            return Response.json({ error: "Request is required" }, { status: 400 });
+          }
+
+          const mintUrl = body.mintUrl || state.mintUrl;
+          const parsed = await state.manager.wallet.processPaymentRequest(body.request);
+          if (!parsed.matchingMints.includes(mintUrl)) {
+            return Response.json(
+              {
+                error: `Mint ${mintUrl} does not satisfy request (request specifies different mints, or mint balance is insufficient).`,
+              },
+              { status: 400 },
+            );
+          }
+
+          const prepared = await state.manager.wallet.preparePaymentRequestTransaction(
+            mintUrl,
+            parsed,
+          );
+
+          let xCashuHeader: string | undefined;
+          await state.manager.wallet.handleInbandPaymentRequest(prepared, async (token) => {
+            xCashuHeader = `X-Cashu: ${getEncodedToken(token)}`;
+          });
+
+          if (!xCashuHeader) {
+            return Response.json({ error: "Failed to settle X-Cashu request" }, { status: 500 });
+          }
+
+          return Response.json({ output: xCashuHeader });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json(
+            { error: `Failed to handle X-Cashu request: ${message}` },
+            { status: 500 },
+          );
         }
       }),
     },

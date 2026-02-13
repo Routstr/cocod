@@ -1,7 +1,7 @@
 ---
 name: cocod
-description: A Cashu ecash wallet CLI for Bitcoin and Lightning payments. Use when managing Cashu tokens, sending/receiving payments via Lightning (bolt11) or ecash, or viewing wallet history.
-compatibility: Requires cocod CLI to be installed. Supports Cashu ecash protocol and Lightning Network payments.
+description: A Cashu ecash wallet CLI for Bitcoin and Lightning payments. Use when managing Cashu tokens, sending/receiving payments via Lightning (bolt11) or ecash, handling HTTP 402 X-Cashu payment requests, or viewing wallet history.
+compatibility: Requires cocod CLI to be installed. Supports Cashu ecash protocol, Lightning Network payments, and NUT-24 HTTP 402 X-Cashu flows.
 metadata:
   project: cocod
   type: cashu-wallet
@@ -14,6 +14,8 @@ metadata:
 # Cocod - Cashu Wallet CLI
 
 Cocod is a Cashu wallet for managing ecash tokens and making Bitcoin/Lightning payments. It uses the Cashu protocol for privacy-preserving ecash transactions.
+
+If a web/API request returns HTTP `402 Payment Required` with an `X-Cashu` header, use this skill to parse and settle the request with cocod.
 
 ## What is Cashu?
 
@@ -79,6 +81,25 @@ cocod send cashu <amount> [--mint-url <url>]
 # Pay a Lightning invoice
 cocod send bolt11 <invoice> [--mint-url <url>]
 ```
+
+### HTTP 402 Web Payments (NUT-24)
+
+Use these commands when a server responds with HTTP `402` and an `X-Cashu` payment request.
+
+```bash
+# Parse an encoded X-Cashu request from a 402 response header
+cocod x-cashu parse <request>
+
+# Settle the request and get an X-Cashu payment header value
+cocod x-cashu handle <request>
+```
+
+Typical flow:
+
+1. Read `X-Cashu` from the `402` response.
+2. Run `cocod x-cashu parse <request>` to inspect amount and mint requirements.
+3. Run `cocod x-cashu handle <request>` to generate payment token header value.
+4. Retry the original web request with returned `X-Cashu: cashuB...` header.
 
 ### Mints
 

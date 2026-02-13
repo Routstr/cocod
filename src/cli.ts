@@ -168,6 +168,29 @@ npcCmd
     });
   });
 
+// x-cashu - nested subcommands
+const xCashuCmd = program.command("x-cashu").description("x-cashu operations");
+
+xCashuCmd
+  .command("parse <request>")
+  .description("Parse x-cashu request")
+  .action(async (request: string) => {
+    await handleDaemonCommand("/x-cashu/parse", {
+      method: "POST",
+      body: { request },
+    });
+  });
+
+xCashuCmd
+  .command("handle <request>")
+  .description("Handle x-cashu request. Returns a X-Cashu header")
+  .action(async (request: string) => {
+    await handleDaemonCommand("/x-cashu/handle", {
+      method: "POST",
+      body: { request },
+    });
+  });
+
 // History - with pagination and watch options
 program
   .command("history")
