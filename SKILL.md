@@ -1,7 +1,7 @@
 ---
 name: cocod
-skill_version: 0.0.11
-requires_cocod_version: 0.0.11
+skill_version: 0.0.12
+requires_cocod_version: 0.0.12
 description: A Cashu ecash wallet CLI for Bitcoin and Lightning payments. Use when managing Cashu tokens, sending/receiving payments via Lightning (bolt11) or ecash, handling HTTP 402 X-Cashu payment requests, or viewing wallet history.
 compatibility: Requires cocod CLI to be installed. Supports Cashu ecash protocol, Lightning Network payments, and NUT-24 HTTP 402 X-Cashu flows.
 metadata:
