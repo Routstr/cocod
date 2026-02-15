@@ -1,7 +1,13 @@
 import { startDaemon } from "./daemon";
 import { program, handleDaemonCommand, callDaemonStream } from "./cli-shared";
+import packageJson from "../package.json" with { type: "json" };
 
-program.name("cocod").description("Coco CLI - A Cashu wallet daemon");
+const cliVersion = packageJson.version;
+
+program
+  .name("cocod")
+  .description("Coco CLI - A Cashu wallet daemon")
+  .version(cliVersion, "--version", "output the version number");
 
 // Status - check daemon/wallet state
 program

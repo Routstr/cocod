@@ -23,6 +23,32 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Bump version
         run: bun pm version patch --no-git-tag-version
+      - name: Sync SKILL version pins
+        run: |
+          VERSION=$(bun -e 'const pkg = JSON.parse(await Bun.file("package.json").text()); console.log(pkg.version)')
+          VERSION="$VERSION" bun -e '
+            const version = process.env.VERSION;
+            if (!version) {
+              throw new Error("Missing VERSION env var");
+            }
+
+            const skillPath = "SKILL.md";
+            const skill = await Bun.file(skillPath).text();
+
+            if (!/^skill_version:\s*.+$/m.test(skill)) {
+              throw new Error("SKILL.md is missing skill_version field");
+            }
+
+            if (!/^requires_cocod_version:\s*.+$/m.test(skill)) {
+              throw new Error("SKILL.md is missing requires_cocod_version field");
+            }
+
+            const next = skill
+              .replace(/^skill_version:\s*.+$/m, `skill_version: ${version}`)
+              .replace(/^requires_cocod_version:\s*.+$/m, `requires_cocod_version: ${version}`);
+
+            await Bun.write(skillPath, next);
+          '
       - name: Pack tarball
         run: bun pm pack
       - name: Publish to npm
@@ -32,7 +58,7 @@ jobs:
       - name: Commit version bump
         run: |
           VERSION=$(bun -e 'console.log(require("./package.json").version)')
-          git add package.json bun.lock
+          git add package.json bun.lock SKILL.md
           git commit -m "chore(release): v$VERSION [skip ci]"
           git push
       - name: Publish to skill registry

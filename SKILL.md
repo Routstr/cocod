@@ -1,5 +1,7 @@
 ---
 name: cocod
+skill_version: 0.0.11
+requires_cocod_version: 0.0.11
 description: A Cashu ecash wallet CLI for Bitcoin and Lightning payments. Use when managing Cashu tokens, sending/receiving payments via Lightning (bolt11) or ecash, handling HTTP 402 X-Cashu payment requests, or viewing wallet history.
 compatibility: Requires cocod CLI to be installed. Supports Cashu ecash protocol, Lightning Network payments, and NUT-24 HTTP 402 X-Cashu flows.
 metadata:
@@ -27,6 +29,21 @@ Cashu is a Chaumian ecash protocol that lets you hold and transfer Bitcoin-backe
 # Install cocod CLI
 bun install -g cocod
 ```
+
+## Version Compatibility
+
+This skill is version-pinned to an exact `cocod` CLI release.
+
+- `skill_version` must match the npm package version.
+- `requires_cocod_version` is pinned to that exact same version.
+
+Check your installed CLI version:
+
+```bash
+cocod --version
+```
+
+If the version does not match the pinned values in this file, update `cocod` before using this skill.
 
 ## Quick Start
 
