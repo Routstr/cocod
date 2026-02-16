@@ -11,6 +11,7 @@
     "start": "bun src/index.ts",
     "daemon": "bun src/index.ts daemon",
     "lint": "tsc --noEmit",
+    "test": "bun test",
     "format": "prettier --write ."
   },
   "devDependencies": {

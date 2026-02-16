@@ -26,9 +26,9 @@ Agents should optimize for: minimal diffs, strict types, Bun-native APIs, and pr
 
 Key paths/env:
 
-- Socket: `COCOD_SOCKET` (default `/tmp/cocod.sock`).
-- PID file: `COCOD_PID` (default `/tmp/cocod.pid`).
-- Wallet config: `~/.config/cocod/config.json` (generated; do not commit).
+- Socket: `COCOD_SOCKET` (default `~/.cocod/cocod.sock`).
+- PID file: `COCOD_PID` (default `~/.cocod/cocod.pid`).
+- Wallet config: `~/.cocod/config.json` (generated; do not commit).
 
 ## Commands
 
@@ -96,7 +96,7 @@ bunx tsc --noEmit
 
 ### Tests
 
-There are currently no committed test files, but Bun's test runner is the expected choice.
+Bun's test runner is the expected choice.
 
 - Run all tests:
 
@@ -123,7 +123,7 @@ Notes:
 
 ## Code Style
 
-There is no formatter config in this repo. Match existing style and avoid drive-by reformatting.
+There is a formatter config at `.prettierrc`. Match existing style and avoid drive-by reformatting.
 
 ### Formatting
 
@@ -200,11 +200,45 @@ CLI (`src/cli-shared.ts`):
 - Avoid committing/generated artifacts (e.g., `coco.db`, sockets, pid files, `.env`).
 - When adding new commands/routes:
   - update Commander wiring in `src/cli.ts`
-  - add a daemon handler in `src/daemon.ts` (and ensure it returns the `{ output | error }` shape)
+  - add/update the route handler in `src/routes.ts` (and ensure it returns the `{ output | error }` shape)
   - keep the CLI/daemon contract explicit (method, path, request/response types).
+  - update `docs/daemon-api.json` to keep the route contract in sync.
+
+## Agent Playbook
+
+Use these repeatable recipes to keep changes predictable.
+
+### Add or update a CLI command
+
+1. Update command wiring in `src/cli.ts`.
+2. Add/update daemon route in `src/routes.ts`.
+3. Keep route responses to `{ output: ... }` on success and `{ error: string }` on failure.
+4. Return explicit status codes:
+   - 400 invalid input
+   - 401 auth/passphrase failure
+   - 403 locked wallet for unlocked-only endpoints
+   - 404 unknown endpoint
+   - 409 state conflict
+   - 500 unexpected runtime failure
+5. Update docs:
+   - `README.md` command tables/examples
+   - `docs/daemon-api.json` endpoint contract
+6. Add/adjust tests and run checks (`bun run lint`, `bun test`).
+
+### Validate request bodies
+
+- Treat request bodies as untrusted.
+- Validate required fields before calling wallet methods.
+- Return 400 with actionable messages for malformed JSON, missing fields, wrong types, or invalid ranges.
+
+### Keep docs and runtime aligned
+
+- If you change command names, env var behavior, or defaults, update docs in the same patch.
+- Prefer one source of truth for path constants (`src/utils/config.ts`).
+- Do not leave placeholders in user-facing docs.
 
 ## Quick Debugging Checklist
 
 - CLI can't connect: verify `COCOD_SOCKET` matches daemon and the socket exists.
-- Daemon won't start: check for stale `/tmp/cocod.sock` and `/tmp/cocod.pid`.
+- Daemon won't start: check for stale `~/.cocod/cocod.sock` and `~/.cocod/cocod.pid`.
 - Type errors: run `bun run lint` and fix strictness issues (especially `undefined` from indexing).
