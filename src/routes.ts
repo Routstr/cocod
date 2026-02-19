@@ -202,7 +202,7 @@ export function createRouteHandlers(
         try {
           const body = (await req.json()) as { token: string };
           const token = body.token;
-          const decoded = getDecodedToken(token);
+          const decoded = await state.manager.wallet.decodeToken(token);
           await state.manager.wallet.receive(token);
           const total = decoded.proofs.reduce(
             (a: number, c: { amount: number }) => a + c.amount,
