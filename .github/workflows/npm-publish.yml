@@ -35,17 +35,21 @@ jobs:
             const skillPath = "SKILL.md";
             const skill = await Bun.file(skillPath).text();
 
-            if (!/^skill_version:\s*.+$/m.test(skill)) {
-              throw new Error("SKILL.md is missing skill_version field");
+            if (!/^metadata:\s*$/m.test(skill)) {
+              throw new Error("SKILL.md is missing metadata field");
             }
 
-            if (!/^requires_cocod_version:\s*.+$/m.test(skill)) {
-              throw new Error("SKILL.md is missing requires_cocod_version field");
+            if (!/^\s{2}skill_version:\s*.+$/m.test(skill)) {
+              throw new Error("SKILL.md is missing metadata.skill_version field");
+            }
+
+            if (!/^\s{2}requires_cocod_version:\s*.+$/m.test(skill)) {
+              throw new Error("SKILL.md is missing metadata.requires_cocod_version field");
             }
 
             const next = skill
-              .replace(/^skill_version:\s*.+$/m, `skill_version: ${version}`)
-              .replace(/^requires_cocod_version:\s*.+$/m, `requires_cocod_version: ${version}`);
+              .replace(/^\s{2}skill_version:\s*.+$/m, `  skill_version: ${version}`)
+              .replace(/^\s{2}requires_cocod_version:\s*.+$/m, `  requires_cocod_version: ${version}`);
 
             await Bun.write(skillPath, next);
           '
