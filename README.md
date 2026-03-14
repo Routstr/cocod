@@ -61,6 +61,11 @@ cocod mints list
 # History
 cocod history --limit 10
 cocod history --watch
+
+# Logs
+cocod logs
+cocod logs --follow
+cocod logs --path
 ```
 
 ## NPC (Lightning Address)
@@ -95,8 +100,15 @@ Defaults:
 
 - Socket: `~/.cocod/cocod.sock` (or `COCOD_SOCKET`)
 - PID file: `~/.cocod/cocod.pid` (or `COCOD_PID`)
+- Daemon log: `~/.cocod/daemon.log` (or `COCOD_LOG_FILE`)
 - Config: `~/.cocod/config.json`
 - Database: `~/.cocod/coco.db`
+
+Logging defaults:
+
+- Structured JSON logs are written to `~/.cocod/daemon.log`
+- Rotation keeps 5 files at 5 MiB each by default
+- Override with `COCOD_LOG_LEVEL`, `COCOD_LOG_MAX_BYTES`, and `COCOD_LOG_MAX_FILES`
 
 ## Development
 
