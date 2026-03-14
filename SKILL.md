@@ -5,8 +5,8 @@ compatibility: Requires cocod CLI to be installed. Supports Cashu ecash protocol
 metadata:
   project: cocod
   type: cashu-wallet
-  skill_version: 0.0.14
-  requires_cocod_version: 0.0.14
+  skill_version: 0.0.15
+  requires_cocod_version: 0.0.15
   networks:
     - cashu
     - bitcoin
