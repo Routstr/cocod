@@ -1,4 +1,8 @@
-import { getDecodedToken, getEncodedToken, type Logger } from "coco-cashu-core";
+import {
+  getEncodedToken,
+  type InbandPaymentRequestExecutionResult,
+  type Logger,
+} from "coco-cashu-core";
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { nip19 } from "nostr-tools";
@@ -206,13 +210,9 @@ export function createRouteHandlers(
         try {
           const body = (await req.json()) as { token: string };
           const token = body.token;
-          const decoded = await state.manager.wallet.decodeToken(token);
-          await state.manager.wallet.receive(token);
-          const total = decoded.proofs.reduce(
-            (a: number, c: { amount: number }) => a + c.amount,
-            0,
-          );
-          return Response.json({ output: `Received ${total}` });
+          const preparedOp = await state.manager.ops.receive.prepare({ token });
+          await state.manager.ops.receive.execute(preparedOp);
+          return Response.json({ output: `Received ${preparedOp.amount}` });
         } catch (e) {
           if (e instanceof Error) {
             return Response.json({ error: e.message });
@@ -226,7 +226,12 @@ export function createRouteHandlers(
         try {
           const body = (await req.json()) as { amount: number; mintUrl?: string };
           const mintUrl = body.mintUrl || state.mintUrl;
-          const quote = await state.manager.quotes.createMintQuote(mintUrl, body.amount);
+          const quote = await state.manager.ops.mint.prepare({
+            mintUrl,
+            method: "bolt11",
+            amount: body.amount,
+            methodData: {},
+          });
           return Response.json({ output: quote.request });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -239,8 +244,8 @@ export function createRouteHandlers(
         try {
           const body = (await req.json()) as { amount: number; mintUrl?: string };
           const mintUrl = body.mintUrl || state.mintUrl;
-          const prepared = await state.manager.send.prepareSend(mintUrl, body.amount);
-          const result = await state.manager.send.executePreparedSend(prepared.id);
+          const prepared = await state.manager.ops.send.prepare({ mintUrl, amount: body.amount });
+          const result = await state.manager.ops.send.execute(prepared);
           const token = state.manager.wallet.encodeToken(result.token);
           return Response.json({ output: token });
         } catch (error) {
@@ -254,8 +259,12 @@ export function createRouteHandlers(
         try {
           const body = (await req.json()) as { invoice: string; mintUrl?: string };
           const mintUrl = body.mintUrl || state.mintUrl;
-          const prepared = await state.manager.quotes.prepareMeltBolt11(mintUrl, body.invoice);
-          await state.manager.quotes.executeMelt(prepared.id);
+          const prepared = await state.manager.ops.melt.prepare({
+            mintUrl,
+            method: "bolt11",
+            methodData: { invoice: body.invoice },
+          });
+          await state.manager.ops.melt.execute(prepared);
           return Response.json({ output: `Paid invoice: ${body.invoice}` });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -271,13 +280,13 @@ export function createRouteHandlers(
             return Response.json({ error: "Request is required" }, { status: 400 });
           }
 
-          const parsed = await state.manager.wallet.processPaymentRequest(request);
+          const parsed = await state.manager.paymentRequests.parse(request);
           const mintMsg =
-            parsed.requiredMints?.length > 0
-              ? `from one of ${parsed.requiredMints.length} mints`
+            parsed.allowedMints?.length > 0
+              ? `from one of ${parsed.allowedMints.length} mints`
               : "from any mint";
           const matchingMints =
-            parsed.matchingMints.length > 0 ? parsed.matchingMints.join("\n") : "No matching mint!";
+            parsed.payableMints.length > 0 ? parsed.payableMints.join("\n") : "No matching mint!";
           const msg = `Request requires payment of ${parsed.amount || 0} Sats ${mintMsg}.\nMatching mints:\n${matchingMints}`;
           return Response.json({ output: msg });
         } catch (error) {
@@ -298,8 +307,8 @@ export function createRouteHandlers(
           }
 
           const mintUrl = body.mintUrl || state.mintUrl;
-          const parsed = await state.manager.wallet.processPaymentRequest(body.request);
-          if (!parsed.matchingMints.includes(mintUrl)) {
+          const parsed = await state.manager.paymentRequests.parse(body.request);
+          if (!parsed.payableMints.includes(mintUrl)) {
             return Response.json(
               {
                 error: `Mint ${mintUrl} does not satisfy request (request specifies different mints, or mint balance is insufficient).`,
@@ -307,16 +316,21 @@ export function createRouteHandlers(
               { status: 400 },
             );
           }
+          if (parsed.transport.type !== "inband") {
+            return Response.json(
+              {
+                error: `Cocod can not handle payment requests that are not inband`,
+              },
+              { status: 400 },
+            );
+          }
 
-          const prepared = await state.manager.wallet.preparePaymentRequestTransaction(
-            mintUrl,
-            parsed,
-          );
+          const prepared = await state.manager.paymentRequests.prepare(parsed, { mintUrl });
 
-          let xCashuHeader: string | undefined;
-          await state.manager.wallet.handleInbandPaymentRequest(prepared, async (token) => {
-            xCashuHeader = `X-Cashu: ${getEncodedToken(token)}`;
-          });
+          const res = (await state.manager.paymentRequests.execute(
+            prepared,
+          )) as InbandPaymentRequestExecutionResult;
+          const xCashuHeader = `X-Cashu: ${getEncodedToken(res.token)}`;
 
           if (!xCashuHeader) {
             return Response.json({ error: "Failed to settle X-Cashu request" }, { status: 500 });
