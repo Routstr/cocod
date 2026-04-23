@@ -1,4 +1,5 @@
 import { mnemonicToSeedSync } from "@scure/bip39";
+import { unlink } from "node:fs/promises";
 import { CONFIG_FILE, SOCKET_PATH, PID_FILE } from "./utils/config.js";
 import { createDaemonLogger, serializeError } from "./utils/logger.js";
 import { DaemonStateManager } from "./utils/state.js";
@@ -39,18 +40,18 @@ export async function startDaemon() {
 
   try {
     await Bun.write(PID_FILE, "");
-    await Bun.file(PID_FILE).delete();
+    await unlink(PID_FILE);
   } catch {
     // Directory creation failed or file didn't exist
   }
 
   try {
-    await Bun.file(SOCKET_PATH).delete();
+    await unlink(SOCKET_PATH);
   } catch {
     // File might not exist
   }
   try {
-    await Bun.file(PID_FILE).delete();
+    await unlink(PID_FILE);
   } catch {
     // File might not exist
   }
@@ -115,7 +116,7 @@ export async function startDaemon() {
     server?.stop();
 
     try {
-      await Bun.file(PID_FILE).delete();
+      await unlink(PID_FILE);
     } catch {
       // File might not exist
     }
@@ -127,24 +128,34 @@ export async function startDaemon() {
 
   server = Bun.serve({
     unix: SOCKET_PATH,
-    routes: {
-      ...routes,
-      "/stop": {
-        POST: async () => {
-          logger.info("daemon.stop_requested", { reason: "http_stop" });
-          setTimeout(() => {
-            void cleanup("http_stop");
-          }, 100);
-          return Response.json({ output: "Daemon stopping" });
-        },
-      },
-    },
     async fetch(req) {
+      const url = new URL(req.url);
+      const path = url.pathname;
+      const method = req.method;
+
+      // Stop endpoint (special daemon control)
+      if (path === "/stop" && method === "POST") {
+        logger.info("daemon.stop_requested", { reason: "http_stop" });
+        setTimeout(() => {
+          void cleanup("http_stop");
+        }, 100);
+        return Response.json({ output: "Daemon stopping" });
+      }
+
+      // Look up route in the built routes table
+      const route = routes[path];
+      if (route) {
+        const handler = method === "GET" ? route.GET : method === "POST" ? route.POST : undefined;
+        if (handler) {
+          return handler(req);
+        }
+      }
+
       logger.warn("request.unknown_endpoint", {
-        method: req.method,
+        method,
         url: req.url,
       });
-      return Response.json({ error: `Unknown endpoint: ${req.url}` }, { status: 404 });
+      return Response.json({ error: `Unknown endpoint: ${method} ${path}` }, { status: 404 });
     },
   });
 

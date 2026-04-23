@@ -7,6 +7,7 @@ import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/b
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { nip19 } from "nostr-tools";
 
+import { unlink } from "node:fs/promises";
 import { encryptMnemonic } from "./utils/crypto.js";
 import { CONFIG_FILE, SALT_FILE } from "./utils/config.js";
 import { serializeError } from "./utils/logger.js";
@@ -56,7 +57,7 @@ export function createRouteHandlers(
           const encrypted = !!body.passphrase;
 
           await Bun.write(CONFIG_FILE, "");
-          await Bun.file(CONFIG_FILE).delete();
+          await unlink(CONFIG_FILE);
 
           let config: WalletConfig;
 
