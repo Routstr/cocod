@@ -87,6 +87,7 @@ export async function startDaemon() {
       }
     } else {
       logger.info("wallet.config_missing");
+      logger.info("wallet.uninitialized");
     }
   } catch (error) {
     logger.warn("wallet.config_load_failed", { error: serializeError(error) });
@@ -160,9 +161,6 @@ export async function startDaemon() {
   });
 
   logger.info("daemon.started", { socketPath: SOCKET_PATH });
-  if (stateManager.isUninitialized()) {
-    logger.info("wallet.uninitialized");
-  }
 
   process.on("unhandledRejection", (error) => {
     logger.error("daemon.unhandled_rejection", { error: serializeError(error) });

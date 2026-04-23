@@ -42,6 +42,36 @@ export async function isDaemonRunning(): Promise<boolean> {
   }
 }
 
+const DAEMON_POLL_INTERVAL_MS = 100;
+const DAEMON_SLOW_START_WARNING_MS = 30_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForDaemonReady(startedAt: number, warningShown: { value: boolean }): Promise<void> {
+  for (;;) {
+    try {
+      const result = await callDaemon("/status");
+      if (typeof result.output === "string") {
+        const status = result.output;
+        if (status === "LOCKED" || status === "UNLOCKED" || status === "ERROR") {
+          return;
+        }
+      }
+    } catch {
+      // Daemon may not be accepting requests yet
+    }
+
+    if (!warningShown.value && Date.now() - startedAt >= DAEMON_SLOW_START_WARNING_MS) {
+      warningShown.value = true;
+      console.log("Daemon is taking longer than expected, please wait...");
+    }
+
+    await sleep(DAEMON_POLL_INTERVAL_MS);
+  }
+}
+
 export async function startDaemonProcess(): Promise<void> {
   const proc = Bun.spawn({
     cmd: ["bun", "run", `${import.meta.dir}/index.ts`, "daemon"],
@@ -51,14 +81,21 @@ export async function startDaemonProcess(): Promise<void> {
   });
   proc.unref();
 
-  for (let i = 0; i < 50; i++) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
+  const startedAt = Date.now();
+  const warningShown = { value: false };
+
+  for (;;) {
+    await sleep(DAEMON_POLL_INTERVAL_MS);
     if (await isDaemonRunning()) {
+      await waitForDaemonReady(startedAt, warningShown);
       return;
     }
-  }
 
-  throw new Error("Daemon failed to start within 5 seconds");
+    if (!warningShown.value && Date.now() - startedAt >= DAEMON_SLOW_START_WARNING_MS) {
+      warningShown.value = true;
+      console.log("Daemon is taking longer than expected, please wait...");
+    }
+  }
 }
 
 export async function ensureDaemonRunning(): Promise<void> {
