@@ -1,11 +1,76 @@
 import { mnemonicToSeedSync } from "@scure/bip39";
+import { closeSync, openSync, writeFileSync } from "node:fs";
 import { unlink } from "node:fs/promises";
+import process from "node:process";
 import { CONFIG_FILE, SOCKET_PATH, PID_FILE } from "./utils/config.js";
 import { createDaemonLogger, serializeError } from "./utils/logger.js";
 import { DaemonStateManager } from "./utils/state.js";
 import { initializeWallet } from "./utils/wallet.js";
 import { createRouteHandlers, buildRoutes } from "./routes.js";
 import type { WalletConfig } from "./utils/config.js";
+
+async function isProcessAlive(pid: number): Promise<boolean> {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return false;
+  }
+
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function acquirePidLock(logger: ReturnType<typeof createDaemonLogger>): Promise<void> {
+  const pidFile = Bun.file(PID_FILE);
+  if (await pidFile.exists()) {
+    const existingPidText = (await pidFile.text()).trim();
+    const existingPid = Number.parseInt(existingPidText, 10);
+
+    if (await isProcessAlive(existingPid)) {
+      logger.warn("daemon.start.skipped", {
+        reason: "already_running",
+        pid: existingPid,
+        pidFile: PID_FILE,
+      });
+      await logger.flush();
+      console.error(`Error: Daemon is already running with PID ${existingPid}`);
+      process.exit(1);
+    }
+
+    logger.warn("daemon.pid.stale", {
+      pid: existingPidText || null,
+      pidFile: PID_FILE,
+    });
+    try {
+      await unlink(PID_FILE);
+    } catch {
+      // File may already be gone
+    }
+  }
+
+  try {
+    const fd = openSync(PID_FILE, "wx");
+    try {
+      writeFileSync(fd, `${process.pid}`);
+    } finally {
+      closeSync(fd);
+    }
+  } catch {
+    const currentPidText = (await Bun.file(PID_FILE).text()).trim();
+    const currentPid = Number.parseInt(currentPidText, 10);
+
+    logger.warn("daemon.start.skipped", {
+      reason: "pid_lock_exists",
+      pid: Number.isNaN(currentPid) ? currentPidText : currentPid,
+      pidFile: PID_FILE,
+    });
+    await logger.flush();
+    console.error("Error: Daemon is already starting or running");
+    process.exit(1);
+  }
+}
 
 export async function startDaemon() {
   const stateManager = new DaemonStateManager();
@@ -15,6 +80,8 @@ export async function startDaemon() {
     pidFile: PID_FILE,
     socketPath: SOCKET_PATH,
   });
+
+  await acquirePidLock(logger);
 
   try {
     const testConn = await Bun.connect({
@@ -31,6 +98,11 @@ export async function startDaemon() {
       reason: "already_running",
       socketPath: SOCKET_PATH,
     });
+    try {
+      await unlink(PID_FILE);
+    } catch {
+      // File might not exist
+    }
     await logger.flush();
     console.error(`Error: Daemon is already running on ${SOCKET_PATH}`);
     process.exit(1);
@@ -39,24 +111,10 @@ export async function startDaemon() {
   }
 
   try {
-    await Bun.write(PID_FILE, "");
-    await unlink(PID_FILE);
-  } catch {
-    // Directory creation failed or file didn't exist
-  }
-
-  try {
     await unlink(SOCKET_PATH);
   } catch {
     // File might not exist
   }
-  try {
-    await unlink(PID_FILE);
-  } catch {
-    // File might not exist
-  }
-
-  await Bun.write(PID_FILE, process.pid.toString());
 
   try {
     const configExists = await Bun.file(CONFIG_FILE).exists();
